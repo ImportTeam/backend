@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  seq                    BigInt    @id @default(autoincrement())
+  uuid                   String    @unique
+  email                  String?   @unique
+  password_hash          String?
+  social_provider        String    @default("NONE")
+  social_id              String?
+  name                   String
+  preferred_payment_seq  BigInt?   @unique
+  created_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
+  payment_methods        payment_methods[]
+  user_sessions          user_sessions[]
+  user_settings          user_settings?
+}
+
+model payment_methods {
+  seq            BigInt   @id @default(autoincrement())
+  user_seq       BigInt
+  type           String
+  provider_name  String
+  last4          String
+  alias          String?
+  created_at     DateTime @default(now())
+
+  user users @relation(fields: [user_seq], references: [seq])
+}
+
+model user_sessions {
+  seq            BigInt   @id @default(autoincrement())
+  user_seq       BigInt
+  access_token   String
+  refresh_token  String
+  expires_at     DateTime
+  device_info    String?
+  created_at     DateTime @default(now())
+
+  user users @relation(fields: [user_seq], references: [seq])
+}
+
+model user_settings {
+  user_seq             BigInt   @id
+  dark_mode            Boolean  @default(false)
+  notification_enabled Boolean  @default(true)
+  compare_mode         String   @default("AUTO")
+  currency_preference  String   @default("KRW")
+  updated_at           DateTime @updatedAt
+
+  user users @relation(fields: [user_seq], references: [seq])
+}
