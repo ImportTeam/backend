@@ -18,7 +18,11 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(password, user.password_hash || '');
     if (!isPasswordValid) throw new UnauthorizedException('비밀번호가 일치하지 않습니다.');
 
-    const payload = { sub: user.seq.toString(), email: user.email };
+    const payload = { 
+      sub: user.seq.toString(), 
+      uuid: user.uuid, 
+      email: user.email 
+    };
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: process.env.JWT_SECRET,
       expiresIn: process.env.JWT_EXPIRES_IN || '1h',
@@ -29,6 +33,7 @@ export class AuthService {
       access_token: accessToken,
       user: {
         id: user.seq,
+        uuid: user.uuid,
         email: user.email,
         name: user.name,
       },
@@ -53,7 +58,11 @@ export class AuthService {
     }
 
     // JWT 토큰 생성
-    const payload = { sub: user.seq.toString(), email: user.email };
+    const payload = { 
+      sub: user.seq.toString(), 
+      uuid: user.uuid, 
+      email: user.email 
+    };
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: process.env.JWT_SECRET,
       expiresIn: process.env.JWT_EXPIRES_IN || '1h',
@@ -64,6 +73,7 @@ export class AuthService {
       access_token: accessToken,
       user: {
         id: user.seq,
+        uuid: user.uuid,
         email: user.email,
         name: user.name,
         provider,

@@ -22,6 +22,9 @@ async function bootstrap() {
     .setDescription('Payment Recommendation Backend API (Nest.js + Prisma + MySQL)')
     .setVersion('1.0.0')
     .addBearerAuth()
+    .addTag('Auth', '일반 로그인 및 회원가입')
+    .addTag('Social Login', '소셜 로그인 (Google, Kakao)')
+    .addTag('Debug', '개발 및 디버그용 API')
     .build();
   const doc = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('swagger', app, doc);

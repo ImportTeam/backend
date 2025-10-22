@@ -7,6 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum PaymentType {
+  CARD
+  PAYPAL
+  APPLEPAY
+  KAKAOPAY
+  NAVERPAY
+  ETC
+}
+
 model users {
   seq                    BigInt    @id @default(autoincrement())
   uuid                   String    @unique
@@ -25,27 +34,56 @@ model users {
 }
 
 model payment_methods {
-  seq            BigInt   @id @default(autoincrement())
-  user_seq       BigInt
-  type           String
-  provider_name  String
-  last4          String
-  alias          String?
-  created_at     DateTime @default(now())
+  seq                BigInt      @id @default(autoincrement())
+  user_uuid          String
+  type               PaymentType
+  
+  // 카드 기본 정보
+  card_number_hash   String?     @db.VarChar(255)  // 암호화된 전체 카드번호 (복호화 가능)
+  last_4_nums        String      @db.Char(4)       // 카드번호 뒷자리 (표시용)
+  card_holder_name   String?     @db.VarChar(100)  // 카드 소유자 이름
+  
+  // 카드사 정보
+  provider_name      String      @db.VarChar(50)   // 카드사명 (신한, 삼성, 비자 등)
+  card_brand         String?     @db.VarChar(20)   // 카드 브랜드 (VISA, MASTER, AMEX 등)
+  
+  // 만료일 정보
+  expiry_month       String?     @db.Char(2)       // 만료 월 (01-12)
+  expiry_year        String?     @db.Char(4)       // 만료 년도 (YYYY)
+  
+  // CVC/CVV (암호화 저장)
+  cvv_hash           String?     @db.VarChar(255)  // 암호화된 CVV/CVC
+  
+  // 청구지 정보
+  billing_address    String?     @db.VarChar(255)  // 청구지 주소
+  billing_zip        String?     @db.VarChar(20)   // 청구지 우편번호
+  
+  // 부가 정보
+  alias              String?     @db.VarChar(50)   // 사용자 지정 별칭
+  is_primary         Boolean     @default(false)   // 주 결제수단 여부
+  
+  created_at         DateTime    @default(now())
+  updated_at         DateTime    @updatedAt
 
-  user users @relation(fields: [user_seq], references: [seq])
+  user users @relation(fields: [user_uuid], references: [uuid], onDelete: Cascade)
+
+  @@index([user_uuid])
+  @@index([expiry_year, expiry_month])
 }
 
 model user_sessions {
   seq            BigInt   @id @default(autoincrement())
   user_seq       BigInt
-  access_token   String
-  refresh_token  String
+  access_token   String   @db.VarChar(500)
+  refresh_token  String   @db.VarChar(500)
   expires_at     DateTime
-  device_info    String?
+  device_info    String?  @db.VarChar(255)
   created_at     DateTime @default(now())
 
-  user users @relation(fields: [user_seq], references: [seq])
+  user users @relation(fields: [user_seq], references: [seq], onDelete: Cascade)
+
+  @@index([user_seq])
+  @@index([expires_at])
 }
 
 model user_settings {
@@ -56,5 +94,5 @@ model user_settings {
   currency_preference  String   @default("KRW")
   updated_at           DateTime @updatedAt
 
-  user users @relation(fields: [user_seq], references: [seq])
+  user users @relation(fields: [user_seq], references: [seq], onDelete: Cascade)
 }
