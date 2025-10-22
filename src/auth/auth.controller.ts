@@ -15,7 +15,7 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  // ✅ 구글 로그인 시작
+  // 구글 로그인 시작
   @Get('google')
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Google 소셜 로그인 시작' })
@@ -23,7 +23,7 @@ export class AuthController {
     // 이 엔드포인트는 단순히 구글 로그인 페이지로 리다이렉트함
   }
 
-  // ✅ 구글 로그인 콜백
+  // 구글 로그인 콜백
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Google 로그인 콜백' })
@@ -31,13 +31,13 @@ export class AuthController {
     return this.authService.socialLogin(req.user);
   }
 
-  // ✅ 카카오 로그인 시작
+  // 카카오 로그인 시작
   @Get('kakao')
   @UseGuards(AuthGuard('kakao'))
   @ApiOperation({ summary: 'Kakao 소셜 로그인 시작' })
   async kakaoLogin() {}
 
-  // ✅ 카카오 로그인 콜백
+  // 카카오 로그인 콜백
   @Get('kakao/callback')
   @UseGuards(AuthGuard('kakao'))
   @ApiOperation({ summary: 'Kakao 로그인 콜백' })
