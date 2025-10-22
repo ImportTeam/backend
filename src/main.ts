@@ -1,0 +1,33 @@
+import 'reflect-metadata';
+import './common/bigint-serializer'; // BigInt to JSON
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
+import { PrismaService } from './prisma/prisma.service';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+
+  const config = new DocumentBuilder()
+    .setTitle('PicSel API')
+    .setDescription('Payment Recommendation Backend API (Nest.js + Prisma + MySQL)')
+    .setVersion('1.0.0')
+    .addBearerAuth()
+    .build();
+  const doc = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('swagger', app, doc);
+
+  const prisma = app.get(PrismaService);
+
+  // 개발 모드에서만 seq 정리 자동 실행하고 싶으면:
+  if (process.env.NODE_ENV !== 'production') {
+    // 지저분하면 AdminService를 DI해서 호출해도 됨
+    // 여기서는 간단히 pass (Swagger 버튼으로도 가능)
+  }
+
+  await app.listen(3000);
+}
+bootstrap();

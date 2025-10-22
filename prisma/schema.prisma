@@ -15,12 +15,13 @@ model users {
   social_provider        String    @default("NONE")
   social_id              String?
   name                   String
-  preferred_payment_seq  BigInt?   @unique
+  preferred_payment_seq  BigInt?
   created_at             DateTime  @default(now())
   updated_at             DateTime  @updatedAt
-  payment_methods        payment_methods[]
-  user_sessions          user_sessions[]
-  user_settings          user_settings?
+
+  payment_methods  payment_methods[]
+  user_sessions    user_sessions[]
+  user_settings    user_settings?
 }
 
 model payment_methods {
