@@ -31,4 +31,23 @@ export class UsersService {
   async findBySeq(seq: bigint) {
     return this.prisma.users.findUnique({ where: { seq } });
   }
+
+  // 소셜 로그인 사용자 생성
+  async createSocialUser(data: {
+    email: string;
+    name: string;
+    provider: string;
+    providerId: string;
+  }) {
+    return this.prisma.users.create({
+      data: {
+        uuid: randomUUID(),
+        email: data.email,
+        name: data.name,
+        social_provider: data.provider.toUpperCase(),
+        social_id: data.providerId,
+        password_hash: null, // 소셜 로그인 사용자는 비밀번호가 없음
+      },
+    });
+  }
 }

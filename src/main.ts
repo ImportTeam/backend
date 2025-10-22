@@ -9,6 +9,12 @@ import { PrismaService } from './prisma/prisma.service';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // CORS 설정 (소셜 로그인을 위해 필요)
+  app.enableCors({
+    origin: true, // 개발 환경에서는 모든 origin 허용
+    credentials: true,
+  });
+
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   const config = new DocumentBuilder()
