@@ -1,10 +1,10 @@
+/* eslint-disable unicorn/prefer-top-level-await */
 import 'reflect-metadata';
 import './common/bigint-serializer'; // BigInt to JSON
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
-import { PrismaService } from './prisma/prisma.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -14,6 +14,9 @@ async function bootstrap() {
     origin: true, // 개발 환경에서는 모든 origin 허용
     credentials: true,
   });
+
+  // API prefix를 /api 로 통일 (요구된 엔드포인트 형태 맞추기)
+  app.setGlobalPrefix('api');
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
@@ -29,8 +32,6 @@ async function bootstrap() {
   const doc = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('swagger', app, doc);
 
-  const prisma = app.get(PrismaService);
-
   // 개발 모드에서만 seq 정리 자동 실행하고 싶으면:
   if (process.env.NODE_ENV !== 'production') {
     // 지저분하면 AdminService를 DI해서 호출해도 됨
@@ -39,4 +40,5 @@ async function bootstrap() {
 
   await app.listen(3000);
 }
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
 bootstrap();

@@ -48,14 +48,12 @@ export class AuthService {
     let user = await this.usersService.findByEmail(email);
 
     // 사용자가 없으면 새로 생성
-    if (!user) {
-      user = await this.usersService.createSocialUser({
-        email,
-        name,
-        provider,
-        providerId,
-      });
-    }
+    user ??= await this.usersService.createSocialUser({
+      email,
+      name,
+      provider,
+      providerId,
+    });
 
     // JWT 토큰 생성
     const payload = { 
@@ -79,5 +77,20 @@ export class AuthService {
         provider,
       },
     };
+  }
+
+  // 이메일 인증 토큰 검증 (간단한 JWT 유효성 검사)
+  async verifyEmailToken(token: string) {
+    const payload = await this.jwtService
+      .verifyAsync(token, { secret: process.env.JWT_SECRET })
+      .catch(() => {
+        throw new UnauthorizedException('Invalid or expired token');
+      });
+    return { valid: true, payload };
+  }
+
+  // 공통 사용자 삭제 위임
+  async deleteUser(userId: string) {
+    return this.usersService.deleteByUserId(userId);
   }
 }

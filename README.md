@@ -1,3 +1,4 @@
+<!-- markdownlint-disable
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
@@ -23,49 +24,73 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository. -->
+
+## PicSel 인증 API
+
+모든 엔드포인트는 기본 prefix `/api`가 붙습니다. 예: `/api/auth/...`
+
+- Email
+  - POST `/api/auth/email/login` — 이메일/비밀번호 로그인
+  - POST `/api/auth/email/register` — 이메일 회원가입
+  - POST `/api/auth/email/verify/:token` — 이메일 인증(2차) 토큰 검증
+  - DELETE `/api/auth/email/delete/:userId` — 사용자 삭제 (uuid 또는 seq)
+- Google
+  - GET `/api/auth/google` — Google 로그인 시작 (리다이렉트)
+  - GET `/api/auth/google/callback` — Google 콜백
+  - POST `/api/auth/google/login` — 명세 호환용 POST 별칭
+  - POST `/api/auth/google/login/callback` — 명세 호환용 POST 콜백 별칭
+  - DELETE `/api/auth/google/delete/:userId` — 사용자 삭제
+- Kakao
+  - GET `/api/auth/kakao` — Kakao 로그인 시작 (리다이렉트)
+  - GET `/api/auth/kakao/callback` — Kakao 콜백
+  - POST `/api/auth/kakao/login` — 명세 호환용 POST 별칭
+  - POST `/api/auth/kakao/login/callback` — 명세 호환용 POST 콜백 별칭
+  - DELETE `/api/auth/kakao/delete/:userId` — 사용자 삭제
+
+상세 스펙과 테스트는 Swagger UI(`/swagger`)에서 확인할 수 있습니다.
 
 ## Project setup
 
 ```bash
-$ npm install
+npm install
 ```
 
 ## Compile and run the project
 
 ```bash
 # development
-$ npm run start
+npm run start
 
 # watch mode
-$ npm run start:dev
+npm run start:dev
 
 # production mode
-$ npm run start:prod
+npm run start:prod
 ```
 
 ## Run tests
 
 ```bash
 # unit tests
-$ npm run test
+npm run test
 
 # e2e tests
-$ npm run test:e2e
+npm run test:e2e
 
 # test coverage
-$ npm run test:cov
+npm run test:cov
 ```
 
-## Deployment
+<!-- ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 
 If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install -g @nestjs/mau
+mau deploy
 ```
 
 With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
@@ -95,4 +120,5 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE). -->
+<!-- markdownlint-enable -->
