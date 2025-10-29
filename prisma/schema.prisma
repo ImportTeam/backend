@@ -16,6 +16,11 @@ enum PaymentType {
   ETC
 }
 
+enum DiscountType {
+  PERCENT
+  FLAT
+}
+
 model users {
   seq                    BigInt    @id @default(autoincrement())
   uuid                   String    @unique
@@ -31,6 +36,7 @@ model users {
   payment_methods  payment_methods[]
   user_sessions    user_sessions[]
   user_settings    user_settings?
+  payment_transactions payment_transactions[]
 }
 
 model payment_methods {
@@ -95,4 +101,49 @@ model user_settings {
   updated_at           DateTime @updatedAt
 
   user users @relation(fields: [user_seq], references: [seq], onDelete: Cascade)
+}
+
+// 사용자의 결제 내역 저장
+model payment_transactions {
+  seq                 BigInt   @id @default(autoincrement())
+  user_uuid           String
+  payment_method_seq  BigInt?
+  merchant_name       String    @db.VarChar(255)
+  amount              Decimal   @db.Decimal(19, 2)
+  currency            String    @default("KRW")
+  benefit_value       Decimal?  @db.Decimal(19, 2)
+  benefit_desc        String?   @db.VarChar(255)
+  compared_at         DateTime?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  user users @relation(fields: [user_uuid], references: [uuid], onDelete: Cascade)
+
+  @@index([user_uuid, created_at])
+  @@index([payment_method_seq])
+}
+
+// 카드/페이 혜택/프로모션 정보 저장 (크롤링/수동 입력)
+model benefit_offers {
+  id              BigInt       @id @default(autoincrement())
+  provider_name   String       @db.VarChar(50) // 카드사명 또는 페이명 (신한, 삼성, KAKAOPAY 등)
+  payment_type    PaymentType?
+  title           String       @db.VarChar(255)
+  description     String?      @db.Text
+  merchant_filter String?      @db.VarChar(255) // 포함 매칭(단순 문자열)
+  category_filter String?      @db.VarChar(100)
+  min_spend       Decimal?     @db.Decimal(19, 2)
+  discount_type   DiscountType
+  discount_value  Decimal      @db.Decimal(19, 2)
+  max_discount    Decimal?     @db.Decimal(19, 2)
+  start_date      DateTime?
+  end_date        DateTime?
+  active          Boolean      @default(true)
+  source_url      String?      @db.VarChar(255)
+  hash            String?      @unique @db.VarChar(64)
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  @@index([provider_name])
+  @@index([active, end_date])
 }

@@ -6,6 +6,9 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
 import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
+import { BenefitsModule } from './benefits/benefits.module';
+import { PaymentsModule } from './payments/payments.module';
+import { CrawlerModule } from './crawler/crawler.module';
 
 @Module({
   imports: [
@@ -16,6 +19,9 @@ import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
     AuthModule,
     AdminModule,
     PaymentMethodsModule,
+    BenefitsModule,
+    PaymentsModule,
+    CrawlerModule,
   ],
 })
 export class AppModule {}
