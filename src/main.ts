@@ -22,7 +22,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('PicSel API')
-    .setDescription('Payment Recommendation Backend API (Nest.js + Prisma + MySQL)')
+    .setDescription('Payment Recommendation Backend API (Nest.js + Prisma + PostgreSQL/Neon)')
     .setVersion('1.0.0')
     .addBearerAuth()
     .addTag('Auth', '일반 로그인 및 회원가입')
@@ -38,7 +38,8 @@ async function bootstrap() {
     // 여기서는 간단히 pass (Swagger 버튼으로도 가능)
   }
 
-  await app.listen(3000);
+  // 모든 호스트에서 접근 가능 (개발용)
+  await app.listen(3000, '0.0.0.0');
 }
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 bootstrap();

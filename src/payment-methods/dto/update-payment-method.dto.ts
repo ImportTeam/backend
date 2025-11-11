@@ -1,3 +1,7 @@
+/**
+ * 결제수단 수정 - DTO
+ */
+
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsString, Length, Matches } from 'class-validator';
 

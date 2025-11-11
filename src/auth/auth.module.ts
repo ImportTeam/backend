@@ -6,13 +6,14 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from '../common/strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { KakaoStrategy } from './strategies/kakao.strategy';
+import { NaverStrategy } from './strategies/naver.strategy';
 
 @Module({
   imports: [
     UsersModule,
     JwtModule.register({}), // 옵션은 service에서 signAsync 시 주입
   ],
-  providers: [AuthService, JwtStrategy, GoogleStrategy, KakaoStrategy],
+  providers: [AuthService, JwtStrategy, GoogleStrategy, KakaoStrategy, NaverStrategy],
   controllers: [AuthController],
 })
 export class AuthModule {}

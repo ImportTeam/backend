@@ -1,3 +1,7 @@
+/**
+ * Kakao 전략 passport 로 구현 
+ */
+
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-kakao';
 import { Injectable } from '@nestjs/common';

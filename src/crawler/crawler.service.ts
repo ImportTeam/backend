@@ -1,3 +1,7 @@
+/**
+ * 결제 혜택 크롤링 서비스
+ */
+
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';

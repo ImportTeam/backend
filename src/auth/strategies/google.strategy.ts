@@ -1,3 +1,7 @@
+/**
+ * Google 전략 passport 로 구현 
+ */
+
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
 import { Injectable } from '@nestjs/common';

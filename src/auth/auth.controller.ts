@@ -1,3 +1,9 @@
+/**
+ * AUTH 전역 Controller
+ * 일반로그인 / 카카오 로그인 / 구글로그인 / 네이버 로그인 지정
+ */
+
+
 import { Controller, Post, Get, Req, UseGuards, Body, Param, Delete, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -164,6 +170,61 @@ export class AuthController {
   @ApiOperation({ summary: 'Kakao 사용자 삭제', description: 'UUID 또는 숫자 ID로 계정을 삭제합니다.' })
   @HttpCode(200)
   async deleteKakaoUser(@Param('userId') userId: string) {
+    return this.authService.deleteUser(userId);
+  }
+
+  // 네이버 로그인 시작
+  @Get('naver')
+  @UseGuards(AuthGuard('naver'))
+  @ApiTags('Social Login')
+  @ApiOperation({ 
+    summary: 'Naver 소셜 로그인 시작',
+    description: 'Naver OAuth 인증 페이지로 리다이렉트합니다.'
+  })
+  @ApiResponse({ status: 302, description: 'Naver 로그인 페이지로 리다이렉트' })
+  async naverLogin() {
+    // Guard가 처리(리다이렉트)하므로 실제 바디는 실행되지 않습니다.
+    return { redirect: true };
+  }
+
+  // 명세에 맞춘 POST 별칭
+  @Post('naver/login')
+  @UseGuards(AuthGuard('naver'))
+  @ApiTags('Social Login')
+  @ApiOperation({ summary: 'Naver 로그인 (POST 별칭)', description: '명세 경로 지원용 별칭' })
+  async naverLoginPost() {
+    // Guard가 처리(리다이렉트)하므로 실제 바디는 실행되지 않습니다.
+    return { redirect: true };
+  }
+
+  // 네이버 로그인 콜백
+  @Get('naver/callback')
+  @UseGuards(AuthGuard('naver'))
+  @ApiTags('Social Login')
+  @ApiOperation({ 
+    summary: 'Naver 로그인 콜백',
+    description: 'Naver OAuth 인증 후 콜백을 처리하고 JWT 토큰을 발급합니다. 이메일 동의가 필요합니다.'
+  })
+  @ApiResponse({ status: 200, description: '소셜 로그인 성공, JWT 토큰 반환' })
+  @ApiResponse({ status: 400, description: '이메일 정보가 제공되지 않음' })
+  async naverCallback(@Req() req) {
+    return this.authService.socialLogin(req.user);
+  }
+
+  // 명세에 맞춘 POST 콜백 별칭 (실제 Naver는 GET 콜백을 사용)
+  @Post('naver/login/callback')
+  @UseGuards(AuthGuard('naver'))
+  @ApiTags('Social Login')
+  @ApiOperation({ summary: 'Naver 로그인 콜백 (POST 별칭)', description: '명세 경로 지원용 별칭' })
+  async naverCallbackPost(@Req() req) {
+    return this.authService.socialLogin(req.user);
+  }
+
+  @Delete('naver/delete/:userId')
+  @ApiTags('Social Login')
+  @ApiOperation({ summary: 'Naver 사용자 삭제', description: 'UUID 또는 숫자 ID로 계정을 삭제합니다.' })
+  @HttpCode(200)
+  async deleteNaverUser(@Param('userId') userId: string) {
     return this.authService.deleteUser(userId);
   }
 }

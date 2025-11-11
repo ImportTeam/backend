@@ -1,15 +1,15 @@
 {
   "name": "picsel-backend",
   "version": "1.0.0",
-  "description": "PicSel backend built with Nest.js + Prisma + MySQL",
+  "description": "PicSel backend",
   "main": "dist/main.js",
   "scripts": {
     "start": "nest start",
     "start:dev": "nest start --watch",
     "build": "nest build",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "ts-node prisma/seed.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -32,6 +32,7 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
     "passport-kakao": "^1.0.1",
+    "passport-naver": "^1.0.6",
     "prisma": "^6.17.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
