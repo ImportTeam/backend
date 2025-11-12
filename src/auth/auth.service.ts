@@ -23,10 +23,7 @@ export class AuthService {
       uuid: user.uuid, 
       email: user.email 
     };
-    const accessToken = await this.jwtService.signAsync(payload, {
-      secret: process.env.JWT_SECRET,
-      expiresIn: process.env.JWT_EXPIRES_IN || '1h',
-    });
+    const accessToken = await this.jwtService.signAsync(payload);
 
     return {
       message: '로그인 성공',
@@ -61,10 +58,7 @@ export class AuthService {
       uuid: user.uuid, 
       email: user.email 
     };
-    const accessToken = await this.jwtService.signAsync(payload, {
-      secret: process.env.JWT_SECRET,
-      expiresIn: process.env.JWT_EXPIRES_IN || '1h',
-    });
+    const accessToken = await this.jwtService.signAsync(payload);
 
     return {
       message: '소셜 로그인 성공',

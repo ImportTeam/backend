@@ -12,8 +12,10 @@ export class NaverStrategy extends PassportStrategy(Strategy, 'naver') {
   constructor(private readonly configService: ConfigService) {
     // 프로덕션 URL이 설정되어 있으면 사용, 없으면 개발 URL 사용 (Fallback)
     const prodCallbackURL = configService.get<string>('NAVER_REDIRECT_PROD_URI');
-    const devCallbackURL = configService.get<string>('NAVER_REDIRECT_DEV_URI');
+    const devCallbackURL = configService.get<string>('NAVER_REDIRECT_DEV_URI') || 'http://localhost:3000/api/auth/naver/callback';
     const callbackURL = prodCallbackURL || devCallbackURL;
+
+    console.log(`[NaverStrategy] Callback URL: ${callbackURL}`);
 
     // 네이버 OAuth 설정
     // passport-naver는 내부적으로 네이버 엔드포인트를 사용하므로 기본 설정만 필요

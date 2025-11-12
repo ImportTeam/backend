@@ -12,8 +12,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private readonly configService: ConfigService) {
     // 프로덕션 URL이 설정되어 있으면 사용, 없으면 개발 URL 사용 (Fallback)
     const prodCallbackURL = configService.get<string>('GOOGLE_REDIRECT_PROD_URI');
-    const devCallbackURL = configService.get<string>('GOOGLE_REDIRECT_DEV_URI');
+    const devCallbackURL = configService.get<string>('GOOGLE_REDIRECT_DEV_URI') || 'http://localhost:3000/api/auth/google/callback';
     const callbackURL = prodCallbackURL || devCallbackURL;
+
+    console.log(`[GoogleStrategy] Callback URL: ${callbackURL}`);
 
     super({
       clientID: configService.get<string>('GOOGLE_CLIENT_ID'),

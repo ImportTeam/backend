@@ -12,11 +12,13 @@ export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
   constructor(private readonly configService: ConfigService) {
     // 프로덕션 URL이 설정되어 있으면 사용, 없으면 개발 URL 사용 (Fallback)
     const prodCallbackURL = configService.get<string>('KAKAO_REDIRECT_PROD_URI');
-    const devCallbackURL = configService.get<string>('KAKAO_REDIRECT_DEV_URI');
+    const devCallbackURL = configService.get<string>('KAKAO_REDIRECT_DEV_URI') || 'http://localhost:3000/api/auth/kakao/callback';
     const callbackURL = prodCallbackURL || devCallbackURL;
 
     // Client Secret 가져오기
     const clientSecret = configService.get<string>('KAKAO_CLIENT_SECRET');
+
+    console.log(`[KakaoStrategy] Callback URL: ${callbackURL}`);
 
     const config: any = {
       clientID: configService.get<string>('KAKAO_CLIENT_ID'),
