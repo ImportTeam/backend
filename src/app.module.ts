@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './prisma/prisma.module';
@@ -10,6 +11,7 @@ import { BenefitsModule } from './benefits/benefits.module';
 import { PaymentsModule } from './payments/payments.module';
 import { CrawlerModule } from './crawler/crawler.module';
 import { validate } from './config/env.validation';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 @Module({
   imports: [
@@ -26,6 +28,12 @@ import { validate } from './config/env.validation';
     BenefitsModule,
     PaymentsModule,
     CrawlerModule,
+  ],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
   ],
 })
 export class AppModule {}

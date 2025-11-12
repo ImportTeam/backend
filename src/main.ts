@@ -5,9 +5,16 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { CustomLoggerService } from './common/logger/logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: false, // NestJS 기본 로거 비활성화
+  });
+
+  // 커스텀 로거 설정
+  const logger = new CustomLoggerService();
+  app.useLogger(logger);
 
   // CORS 설정 (NODE_ENV에 따라 다르게)
   const isDevelopment = process.env.NODE_ENV === 'development';
