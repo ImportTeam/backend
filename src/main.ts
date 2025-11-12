@@ -38,8 +38,11 @@ async function bootstrap() {
     // 여기서는 간단히 pass (Swagger 버튼으로도 가능)
   }
 
-  // 모든 호스트에서 접근 가능 (개발용)
-  await app.listen(3000, '0.0.0.0');
+  const port = process.env.PORT || 3000;
+  console.log(`Launching NestJS app on port ${port}, URL: http://0.0.0.0:${port}`);
+
+  // 모든 호스트에서 접근 가능
+  await app.listen(port, '0.0.0.0');
 }
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 bootstrap();
