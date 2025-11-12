@@ -9,7 +9,8 @@
     "build": "nest build",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "install": "prisma generate"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -23,7 +24,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/schedule": "^6.0.1",
     "@nestjs/swagger": "^7.2.0",
-    "@prisma/client": "^6.17.1",
+    "@prisma/client": "^6.19.0",
     "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
@@ -33,7 +34,6 @@
     "passport-jwt": "^4.0.1",
     "passport-kakao": "^1.0.1",
     "passport-naver": "^1.0.6",
-    "prisma": "^6.17.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
     "stripe": "^19.1.0",
@@ -48,6 +48,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^20.11.19",
     "@types/supertest": "^6.0.3",
+    "prisma": "^6.19.0",
     "supertest": "^7.1.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
