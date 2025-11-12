@@ -4,7 +4,7 @@
   "description": "PicSel backend",
   "main": "dist/main.js",
   "scripts": {
-    "start": "node dist/main",
+    "start": "node dist/src/main.js",
     "start:dev": "nest start --watch",
     "build": "nest build",
     "db:generate": "prisma generate",

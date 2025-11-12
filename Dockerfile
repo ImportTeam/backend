@@ -1,29 +1,35 @@
 # Build stage
 FROM node:lts-alpine AS builder
 
-USER node
-WORKDIR /home/node
+WORKDIR /app
 
-COPY --chown=node:node package.json pnpm-lock.yaml .
-RUN npm install -g pnpm && pnpm install
+COPY package.json pnpm-lock.yaml ./
 
-COPY --chown=node:node . .
-RUN pnpm run build && pnpm prune --omit=dev
+RUN npm install -g pnpm && pnpm install --frozen-lockfile
+
+COPY . .
+
+RUN pnpm run build
 
 # Production stage
 FROM node:lts-alpine
 
 ENV NODE_ENV=production
-USER node
-WORKDIR /home/node
+WORKDIR /app
 
-COPY --from=builder --chown=node:node /home/node/package.json .
-COPY --from=builder --chown=node:node /home/node/pnpm-lock.yaml .
-COPY --from=builder --chown=node:node /home/node/node_modules ./node_modules
-COPY --from=builder --chown=node:node /home/node/dist ./dist
-COPY --from=builder --chown=node:node /home/node/prisma ./prisma
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
+
+RUN npm install -g pnpm && pnpm install --frozen-lockfile --omit=dev
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules ./node_modules
+
+USER nodejs
 
 ARG PORT=3000
 EXPOSE ${PORT}
 
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
