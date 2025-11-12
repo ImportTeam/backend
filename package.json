@@ -2,7 +2,7 @@
   "name": "picsel-backend",
   "version": "1.0.0",
   "description": "PicSel backend",
-  "main": "dist/main.js",
+  "main": "dist/src/main.js",
   "scripts": {
     "start": "node dist/src/main.js",
     "start:dev": "nest start --watch",
