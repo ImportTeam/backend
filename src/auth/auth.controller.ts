@@ -5,6 +5,7 @@
 
 
 import { Controller, Post, Get, Req, UseGuards, Body, Param, Delete, HttpCode } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
@@ -20,6 +21,7 @@ export class AuthController {
   ) {}
 
   @Post('login')
+  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   @ApiTags('Auth')
   @ApiOperation({ 
     summary: '일반 로그인', 
@@ -34,6 +36,7 @@ export class AuthController {
 
   // ---------- Email 전용 라우트 (명세에 맞춘 별칭) ----------
   @Post('email/login')
+  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   @ApiTags('Auth')
   @ApiOperation({ summary: '이메일 로그인', description: '이메일/비밀번호 로그인 (명세 전용 경로)' })
   @ApiBody({ type: LoginDto })
@@ -43,6 +46,7 @@ export class AuthController {
   }
 
   @Post('email/register')
+  @Throttle({ long: { limit: 3, ttl: 300000 } }) // 3 requests per 5 minutes
   @ApiTags('Auth')
   @ApiOperation({ summary: '이메일 회원가입', description: '일반 회원가입 (명세 전용 경로)' })
   @ApiResponse({ status: 200, description: '회원가입 성공' })

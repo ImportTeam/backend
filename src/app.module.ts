@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
@@ -19,6 +20,18 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
       isGlobal: true, 
       validate 
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 60000, // 1 minute
+        limit: 10,  // 10 requests per minute (default)
+      },
+      {
+        name: 'long',
+        ttl: 300000, // 5 minutes
+        limit: 30,  // 30 requests per 5 minutes (default)
+      },
+    ]),
     ScheduleModule.forRoot(),
     PrismaModule,
     UsersModule,
@@ -33,6 +46,10 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

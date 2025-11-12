@@ -1,4 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { PaymentsService } from './payments.service';
 import { RecordPaymentDto } from './dto/record-payment.dto';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -9,6 +10,7 @@ export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}
 
   @Post('record')
+  @Throttle({ short: { limit: 10, ttl: 60000 } }) // 10 requests per minute
   @ApiOperation({ summary: '결제 내역 기록', description: '사용자별 결제 내역 저장 및 적용 혜택 기록' })
   async record(@Body() dto: RecordPaymentDto) {
     return this.payments.record({
