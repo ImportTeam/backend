@@ -5,26 +5,29 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-kakao';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
-  constructor() {
-    // NODE_ENV에 따라 다른 Redirect URI 사용
-    const callbackURL = 
-      process.env.NODE_ENV === 'development' 
-        ? process.env.KAKAO_REDIRECT_DEV_URI 
-        : process.env.KAKAO_REDIRECT_URI;
+  constructor(private readonly configService: ConfigService) {
+    // 프로덕션 URL이 설정되어 있으면 사용, 없으면 개발 URL 사용 (Fallback)
+    const prodCallbackURL = configService.get<string>('KAKAO_REDIRECT_PROD_URI');
+    const devCallbackURL = configService.get<string>('KAKAO_REDIRECT_DEV_URI');
+    const callbackURL = prodCallbackURL || devCallbackURL;
+
+    // Client Secret 가져오기
+    const clientSecret = configService.get<string>('KAKAO_CLIENT_SECRET');
 
     const config: any = {
-      clientID: process.env.KAKAO_CLIENT_ID,
+      clientID: configService.get<string>('KAKAO_CLIENT_ID'),
       callbackURL: callbackURL,
       // 카카오 이메일 정보를 받기 위한 scope 설정
       scope: ['account_email', 'profile_nickname'],
     };
 
     // Client Secret이 설정되어 있으면 추가
-    if (process.env.KAKAO_CLIENT_SECRET) {
-      config.clientSecret = process.env.KAKAO_CLIENT_SECRET;
+    if (clientSecret) {
+      config.clientSecret = clientSecret;
     }
 
     super(config);

@@ -5,21 +5,21 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-naver';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class NaverStrategy extends PassportStrategy(Strategy, 'naver') {
-  constructor() {
-    // NODE_ENV에 따라 다른 Redirect URI 사용
-    const callbackURL = 
-      process.env.NODE_ENV === 'development' 
-        ? process.env.NAVER_REDIRECT_DEV_URI 
-        : process.env.NAVER_REDIRECT_URI;
+  constructor(private readonly configService: ConfigService) {
+    // 프로덕션 URL이 설정되어 있으면 사용, 없으면 개발 URL 사용 (Fallback)
+    const prodCallbackURL = configService.get<string>('NAVER_REDIRECT_PROD_URI');
+    const devCallbackURL = configService.get<string>('NAVER_REDIRECT_DEV_URI');
+    const callbackURL = prodCallbackURL || devCallbackURL;
 
     // 네이버 OAuth 설정
     // passport-naver는 내부적으로 네이버 엔드포인트를 사용하므로 기본 설정만 필요
     super({
-      clientID: process.env.NAVER_CLIENT_ID,
-      clientSecret: process.env.NAVER_CLIENT_SECRET,
+      clientID: configService.get<string>('NAVER_CLIENT_ID'),
+      clientSecret: configService.get<string>('NAVER_CLIENT_SECRET'),
       callbackURL: callbackURL,
       // 회원이름, 연락처 이메일 주소 스코프
       // 네이버는 profile 스코프로 이름을 받아옴

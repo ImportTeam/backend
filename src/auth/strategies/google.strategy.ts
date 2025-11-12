@@ -5,19 +5,19 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
-  constructor() {
-    // NODE_ENV에 따라 다른 Redirect URI 사용
-    const callbackURL = 
-      process.env.NODE_ENV === 'development' 
-        ? process.env.GOOGLE_REDIRECT_DEV_URI 
-        : process.env.GOOGLE_REDIRECT_URI;
+  constructor(private readonly configService: ConfigService) {
+    // 프로덕션 URL이 설정되어 있으면 사용, 없으면 개발 URL 사용 (Fallback)
+    const prodCallbackURL = configService.get<string>('GOOGLE_REDIRECT_PROD_URI');
+    const devCallbackURL = configService.get<string>('GOOGLE_REDIRECT_DEV_URI');
+    const callbackURL = prodCallbackURL || devCallbackURL;
 
     super({
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientID: configService.get<string>('GOOGLE_CLIENT_ID'),
+      clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET'),
       callbackURL: callbackURL,
       scope: ['email', 'profile'],
     });
