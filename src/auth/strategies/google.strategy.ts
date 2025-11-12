@@ -9,10 +9,16 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor() {
+    // NODE_ENV에 따라 다른 Redirect URI 사용
+    const callbackURL = 
+      process.env.NODE_ENV === 'development' 
+        ? process.env.GOOGLE_REDIRECT_DEV_URI 
+        : process.env.GOOGLE_REDIRECT_URI;
+
     super({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: process.env.GOOGLE_REDIRECT_URI,
+      callbackURL: callbackURL,
       scope: ['email', 'profile'],
     });
   }

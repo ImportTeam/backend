@@ -9,12 +9,18 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class NaverStrategy extends PassportStrategy(Strategy, 'naver') {
   constructor() {
+    // NODE_ENV에 따라 다른 Redirect URI 사용
+    const callbackURL = 
+      process.env.NODE_ENV === 'development' 
+        ? process.env.NAVER_REDIRECT_DEV_URI 
+        : process.env.NAVER_REDIRECT_URI;
+
     // 네이버 OAuth 설정
     // passport-naver는 내부적으로 네이버 엔드포인트를 사용하므로 기본 설정만 필요
     super({
       clientID: process.env.NAVER_CLIENT_ID,
       clientSecret: process.env.NAVER_CLIENT_SECRET,
-      callbackURL: process.env.NAVER_REDIRECT_URI,
+      callbackURL: callbackURL,
       // 회원이름, 연락처 이메일 주소 스코프
       // 네이버는 profile 스코프로 이름을 받아옴
       scope: ['profile', 'email'],

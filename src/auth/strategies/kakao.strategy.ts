@@ -9,9 +9,15 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
   constructor() {
+    // NODE_ENV에 따라 다른 Redirect URI 사용
+    const callbackURL = 
+      process.env.NODE_ENV === 'development' 
+        ? process.env.KAKAO_REDIRECT_DEV_URI 
+        : process.env.KAKAO_REDIRECT_URI;
+
     const config: any = {
       clientID: process.env.KAKAO_CLIENT_ID,
-      callbackURL: process.env.KAKAO_REDIRECT_URI,
+      callbackURL: callbackURL,
       // 카카오 이메일 정보를 받기 위한 scope 설정
       scope: ['account_email', 'profile_nickname'],
     };
