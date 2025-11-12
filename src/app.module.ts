@@ -9,10 +9,14 @@ import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
 import { BenefitsModule } from './benefits/benefits.module';
 import { PaymentsModule } from './payments/payments.module';
 import { CrawlerModule } from './crawler/crawler.module';
+import { validate } from './config/env.validation';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ 
+      isGlobal: true, 
+      validate 
+    }),
     ScheduleModule.forRoot(),
     PrismaModule,
     UsersModule,

@@ -9,13 +9,18 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // CORS 설정 (소셜 로그인을 위해 필요)
+  // CORS 설정 (NODE_ENV에 따라 다르게)
+  const isDevelopment = process.env.NODE_ENV === 'development';
   app.enableCors({
-    origin: true, // 개발 환경에서는 모든 origin 허용
+    origin: isDevelopment 
+      ? true // 개발 환경: 모든 origin 허용
+      : [
+          process.env.FRONTEND_URL || 'https://picsel.example.com', // 프로덕션: 특정 도메인만
+        ],
     credentials: true,
   });
 
-  // API prefix를 /api 로 통일 (요구된 엔드포인트 형태 맞추기)
+  // API prefix를 /api 로 통일
   app.setGlobalPrefix('api');
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
@@ -31,12 +36,6 @@ async function bootstrap() {
     .build();
   const doc = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('swagger', app, doc);
-
-  // 개발 모드에서만 seq 정리 자동 실행하고 싶으면:
-  if (process.env.NODE_ENV !== 'production') {
-    // 지저분하면 AdminService를 DI해서 호출해도 됨
-    // 여기서는 간단히 pass (Swagger 버튼으로도 가능)
-  }
 
   const port = process.env.PORT || 3000;
   console.log(`Launching NestJS app on port ${port}, URL: http://0.0.0.0:${port}`);
