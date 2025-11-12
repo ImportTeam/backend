@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { BenefitsService } from '../benefits/benefits.service';
 
@@ -70,6 +71,7 @@ export class PaymentsService {
 
     const saved = await this.prisma.payment_transactions.create({
       data: {
+        uuid: uuidv4(),
         user_uuid: userUuid,
         payment_method_seq: methodSeq,
         merchant_name: merchant,

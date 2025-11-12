@@ -19,6 +19,7 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.1.8",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.8",
@@ -29,6 +30,7 @@
     "@nestjs/swagger": "^11.2.1",
     "@nestjs/throttler": "^6.4.0",
     "@portone/browser-sdk": "^0.1.1",
+    "@portone/server-sdk": "^0.17.0",
     "@prisma/client": "^6.19.0",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
@@ -44,6 +46,7 @@
     "rxjs": "^7.8.2",
     "stripe": "^19.3.0",
     "swagger-ui-express": "^5.0.1",
+    "uuid": "^13.0.0",
     "winston": "^3.18.3"
   },
   "devDependencies": {

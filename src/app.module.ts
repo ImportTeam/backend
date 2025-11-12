@@ -11,6 +11,9 @@ import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
 import { BenefitsModule } from './benefits/benefits.module';
 import { PaymentsModule } from './payments/payments.module';
 import { CrawlerModule } from './crawler/crawler.module';
+import { PortOneModule } from './portone/portone.module';
+import { IdentityVerificationsModule } from './identity-verifications/identity-verifications.module';
+import { BillingKeysModule } from './billing-keys/billing-keys.module';
 import { validate } from './config/env.validation';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
@@ -41,6 +44,9 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     BenefitsModule,
     PaymentsModule,
     CrawlerModule,
+    PortOneModule,
+    IdentityVerificationsModule,
+    BillingKeysModule,
   ],
   providers: [
     {

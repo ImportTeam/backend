@@ -33,10 +33,11 @@ model users {
   created_at             DateTime  @default(now())
   updated_at             DateTime  @updatedAt
 
-  payment_methods  payment_methods[]
-  user_sessions    user_sessions[]
-  user_settings    user_settings?
-  payment_transactions payment_transactions[]
+  payment_methods         payment_methods[]
+  user_sessions           user_sessions[]
+  user_settings           user_settings?
+  payment_transactions    payment_transactions[]
+  identity_verifications  identity_verifications[]
 }
 
 model payment_methods {
@@ -68,12 +69,20 @@ model payment_methods {
   alias              String?     @db.VarChar(50)   // 사용자 지정 별칭
   is_primary         Boolean     @default(false)   // 주 결제수단 여부
   
+  // PortOne Billing Key 정보
+  billing_key_id     String?     @unique           // PortOne Billing Key ID
+  billing_key_status String?     @db.VarChar(50)   // ISSUED, PENDING, DELETED
+  
+  // 통신사 정보 (본인인증용)
+  operator           String?     @db.VarChar(20)   // SKT, KT, LG, MVN
+  
   created_at         DateTime    @default(now())
   updated_at         DateTime    @updatedAt
 
   user users @relation(fields: [user_uuid], references: [uuid], onDelete: Cascade)
 
   @@index([user_uuid])
+  @@index([billing_key_id])
   @@index([expiry_year, expiry_month])
 }
 
@@ -106,6 +115,7 @@ model user_settings {
 // 사용자의 결제 내역 저장
 model payment_transactions {
   seq                 BigInt   @id @default(autoincrement())
+  uuid                String   @unique @db.Uuid
   user_uuid           String
   payment_method_seq  BigInt?
   merchant_name       String    @db.VarChar(255)
@@ -114,6 +124,12 @@ model payment_transactions {
   benefit_value       Decimal?  @db.Decimal(19, 2)
   benefit_desc        String?   @db.VarChar(255)
   compared_at         DateTime?
+  
+  // PortOne 결제 정보
+  portone_payment_id  String?   @unique           // PortOne Payment ID
+  portone_transaction_id String? @db.VarChar(255) // PortOne Transaction ID
+  status              String    @default("PENDING") // PENDING, COMPLETED, FAILED, CANCELLED
+  
   created_at          DateTime  @default(now())
   updated_at          DateTime  @updatedAt
 
@@ -121,6 +137,44 @@ model payment_transactions {
 
   @@index([user_uuid, created_at])
   @@index([payment_method_seq])
+  @@index([portone_payment_id])
+  @@index([status])
+}
+
+// 본인인증 이력 저장
+model identity_verifications {
+  seq                 BigInt   @id @default(autoincrement())
+  uuid                String   @unique @db.Uuid
+  user_uuid           String
+  
+  // PortOne 정보
+  portone_id          String   @unique           // PortOne Identity Verification ID
+  channel_key         String   @db.VarChar(255)
+  operator            String   @db.VarChar(20)   // SKT, KT, LG, MVN
+  method              String   @db.VarChar(20)   // SMS, APP
+  
+  // 상태
+  status              String   @db.VarChar(50)   // READY, SENT, VERIFIED, FAILED
+  
+  // 고객 정보
+  customer_name       String?  @db.VarChar(100)
+  customer_phone      String?  @db.VarChar(20)
+  customer_email      String?  @db.VarChar(255)
+  
+  // 메타데이터
+  custom_data         String?  @db.Text
+  requested_at        DateTime
+  status_changed_at   DateTime
+  
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  user users @relation(fields: [user_uuid], references: [uuid], onDelete: Cascade)
+
+  @@index([user_uuid])
+  @@index([portone_id])
+  @@index([status])
+  @@index([created_at])
 }
 
 // 카드/페이 혜택/프로모션 정보 저장 (크롤링/수동 입력)
