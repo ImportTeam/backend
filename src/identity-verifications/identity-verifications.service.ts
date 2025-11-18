@@ -410,8 +410,10 @@ export class IdentityVerificationsService {
       this.logger.log(
         `Verifying certified identity for user: ${userUuid}, impUid: ${impUid}`,
       );
+      this.logger.debug(`Config cert channel: ${this.configService.get<string>('PORTONE_CERTIFIED_CHANEL_KEY')}`);
 
       const certified = await this.portOneService.getCertificationByImpUid(impUid);
+      this.logger.debug(`Certified info: ${JSON.stringify(certified).slice(0, 500)}`);
 
       if (!certified) {
         throw new BadRequestException('인증 정보를 찾을 수 없습니다.');

@@ -19,6 +19,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { IdentityVerificationsService } from './identity-verifications.service';
+import { Logger } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import {
   SendIdentityVerificationDto,
@@ -42,6 +43,8 @@ export class IdentityVerificationsController {
   constructor(
     private readonly identityVerificationsService: IdentityVerificationsService,
   ) {}
+
+  private readonly logger = new Logger('IdentityVerificationsController');
 
   /**
    * POST /identity-verifications/:portoneId/send
@@ -394,6 +397,7 @@ export class IdentityVerificationsController {
     @Request() req: any,
   ) {
     const userUuid = req.user.uuid;
+    this.logger.debug(`verifyCertified called: impUid=${dto.impUid}, userUuid=${userUuid}`);
     return this.identityVerificationsService.verifyCertifiedIdentity(
       userUuid,
       dto.impUid,

@@ -13,8 +13,11 @@ async function bootstrap() {
   try {
     console.log('[Bootstrap] Starting NestJS application...');
     
+    // Enable Nest's built-in logger for development to get more detailed debug output.
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
     const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-      logger: false, // NestJS 기본 로거 비활성화
+      logger: isDevelopment ? ['error', 'warn', 'log', 'debug', 'verbose'] : ['error', 'warn', 'log'],
     });
 
     console.log('[Bootstrap] AppModule created');
@@ -25,8 +28,7 @@ async function bootstrap() {
 
     console.log('[Bootstrap] Logger initialized');
 
-    // CORS 설정 (NODE_ENV에 따라 다르게)
-    const isDevelopment = process.env.NODE_ENV === 'development';
+    // CORS 설정 (NODE_ENV에 따라 다르게).
     console.log(`[Bootstrap] NODE_ENV: ${process.env.NODE_ENV}, isDevelopment: ${isDevelopment}`);
     
     app.enableCors({

@@ -84,6 +84,7 @@ class EnvironmentVariables {
   @IsNotEmpty()
   @IsString()
   PORTONE_CERTIFIED_CHANEL_KEY: string;
+
 }
 
 

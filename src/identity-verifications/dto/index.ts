@@ -1,4 +1,5 @@
 import { IsString, IsPhoneNumber, IsEmail, IsEnum, IsOptional } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export enum IdentityVerificationOperator {
   SKT = 'SKT',
@@ -91,6 +92,8 @@ export class VerifyPassIdentityDto {
 
 export class VerifyCertifiedDto {
   @IsString()
+  // Accept both `impUid` (camelCase) and `imp_uid` (snake_case) from frontend payloads
+  @Transform(({ value, obj }) => value ?? obj?.imp_uid)
   impUid: string;
 }
 
