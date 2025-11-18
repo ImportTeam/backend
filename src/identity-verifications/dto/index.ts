@@ -80,3 +80,28 @@ export class ListIdentityVerificationsDto {
   @IsOptional()
   filter?: Record<string, any>;
 }
+
+/**
+ * Pass 인증 (2차 인증) 관련 DTO
+ */
+export class VerifyPassIdentityDto {
+  @IsString()
+  returnedIdentityId: string;
+}
+
+export class VerifyCertifiedDto {
+  @IsString()
+  impUid: string;
+}
+
+export class PassIdentityVerificationResponseDto {
+  id: string;
+  status: string;
+  name?: string;
+  phone?: string;
+  birthDate?: string;
+  ci?: string;
+  di?: string;
+  verifiedAt: Date;
+  message: string;
+}

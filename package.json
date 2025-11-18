@@ -13,6 +13,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "ts-node prisma/seed.ts",
+    "db:push": "npx prisma db push",
+    "db:reset": "npx prisma migrate reset",
     "install": "prisma generate"
   },
   "prisma": {
@@ -27,6 +29,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.8",
     "@nestjs/schedule": "^6.0.1",
+    "@nestjs/serve-static": "^5.0.4",
     "@nestjs/swagger": "^11.2.1",
     "@nestjs/throttler": "^6.4.0",
     "@portone/browser-sdk": "^0.1.1",

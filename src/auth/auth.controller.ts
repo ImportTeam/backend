@@ -6,12 +6,18 @@
 
 import { Controller, Post, Get, Req, UseGuards, Body, Param, Delete, HttpCode } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from '../users/dto/login.dto';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { 
+  LoginResponseDto, 
+  RegisterResponseDto, 
+  ErrorResponseDto,
+  UnauthorizedErrorDto 
+} from '../common/dto/swagger-responses.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -27,9 +33,27 @@ export class AuthController {
     summary: '일반 로그인', 
     description: '이메일과 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.'
   })
-  @ApiBody({ type: LoginDto })
-  @ApiResponse({ status: 200, description: '로그인 성공, JWT 토큰 반환' })
-  @ApiResponse({ status: 401, description: '인증 실패 (이메일 또는 비밀번호 오류)' })
+  @ApiBody({ 
+    type: LoginDto,
+    examples: {
+      example1: {
+        value: {
+          email: 'user@example.com',
+          password: 'Password123!'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '로그인 성공, JWT 토큰 반환',
+    type: LoginResponseDto 
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: '인증 실패 (이메일 또는 비밀번호 오류)',
+    type: ErrorResponseDto 
+  })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
@@ -38,9 +62,31 @@ export class AuthController {
   @Post('email/login')
   @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   @ApiTags('Auth')
-  @ApiOperation({ summary: '이메일 로그인', description: '이메일/비밀번호 로그인 (명세 전용 경로)' })
-  @ApiBody({ type: LoginDto })
-  @ApiResponse({ status: 200, description: '로그인 성공' })
+  @ApiOperation({ 
+    summary: '이메일 로그인', 
+    description: '이메일과 비밀번호로 로그인합니다 (명세 전용 경로)' 
+  })
+  @ApiBody({ 
+    type: LoginDto,
+    examples: {
+      example1: {
+        value: {
+          email: 'test@example.com',
+          password: 'SecurePassword123!'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '로그인 성공',
+    type: LoginResponseDto 
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: '인증 실패',
+    type: ErrorResponseDto 
+  })
   async emailLogin(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
@@ -48,8 +94,32 @@ export class AuthController {
   @Post('email/register')
   @Throttle({ long: { limit: 3, ttl: 300000 } }) // 3 requests per 5 minutes
   @ApiTags('Auth')
-  @ApiOperation({ summary: '이메일 회원가입', description: '일반 회원가입 (명세 전용 경로)' })
-  @ApiResponse({ status: 200, description: '회원가입 성공' })
+  @ApiOperation({ 
+    summary: '이메일 회원가입', 
+    description: '일반 회원가입 (명세 전용 경로)' 
+  })
+  @ApiBody({
+    type: CreateUserDto,
+    examples: {
+      example1: {
+        value: {
+          email: 'newuser@example.com',
+          password: 'SecurePassword123!',
+          name: '홍길동'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '회원가입 성공',
+    type: RegisterResponseDto 
+  })
+  @ApiResponse({ 
+    status: 409, 
+    description: '이미 존재하는 이메일',
+    type: ErrorResponseDto 
+  })
   async emailRegister(@Body() dto: CreateUserDto) {
     const user = await this.usersService.create(dto);
     return { message: 'User registered', user };
@@ -57,14 +127,58 @@ export class AuthController {
 
   @Post('email/verify/:token')
   @ApiTags('Auth')
-  @ApiOperation({ summary: '이메일 인증(2차)', description: '이메일 인증 토큰(JWT) 검증' })
+  @ApiOperation({ 
+    summary: '이메일 인증(2차)', 
+    description: '이메일 인증 토큰(JWT) 검증' 
+  })
+  @ApiParam({
+    name: 'token',
+    description: '이메일 인증 JWT 토큰',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '이메일 인증 성공',
+    schema: {
+      properties: {
+        message: { type: 'string', example: '이메일 인증 성공' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: '유효하지 않거나 만료된 토큰',
+    type: ErrorResponseDto 
+  })
   async verifyEmail(@Param('token') token: string) {
     return this.authService.verifyEmailToken(token);
   }
 
   @Delete('email/delete/:userId')
   @ApiTags('Auth')
-  @ApiOperation({ summary: '이메일 사용자 삭제', description: 'UUID 또는 숫자 ID로 계정을 삭제합니다.' })
+  @ApiOperation({ 
+    summary: '이메일 사용자 삭제', 
+    description: 'UUID 또는 숫자 ID로 계정을 삭제합니다.' 
+  })
+  @ApiParam({
+    name: 'userId',
+    description: '사용자 UUID 또는 시퀀스 ID',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '사용자 삭제 성공',
+    schema: {
+      properties: {
+        message: { type: 'string', example: '사용자 삭제 완료' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: '사용자를 찾을 수 없음',
+    type: ErrorResponseDto 
+  })
   async deleteEmailUser(@Param('userId') userId: string) {
     return this.authService.deleteUser(userId);
   }
@@ -100,7 +214,16 @@ export class AuthController {
     summary: 'Google 로그인 콜백',
     description: 'Google OAuth 인증 후 콜백을 처리하고 JWT 토큰을 발급합니다.'
   })
-  @ApiResponse({ status: 200, description: '소셜 로그인 성공, JWT 토큰 반환' })
+  @ApiResponse({ 
+    status: 200, 
+    description: '소셜 로그인 성공, JWT 토큰 반환',
+    type: LoginResponseDto 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: '로그인 실패',
+    type: ErrorResponseDto 
+  })
   async googleCallback(@Req() req) {
     return this.authService.socialLogin(req.user);
   }
@@ -109,14 +232,49 @@ export class AuthController {
   @Post('google/login/callback')
   @UseGuards(AuthGuard('google'))
   @ApiTags('Social Login')
-  @ApiOperation({ summary: 'Google 로그인 콜백 (POST 별칭)', description: '명세 경로 지원용 별칭' })
+  @ApiOperation({ 
+    summary: 'Google 로그인 콜백 (POST 별칭)', 
+    description: '명세 경로 지원용 별칭' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '로그인 성공',
+    type: LoginResponseDto 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: '로그인 실패',
+    type: ErrorResponseDto 
+  })
   async googleCallbackPost(@Req() req) {
     return this.authService.socialLogin(req.user);
   }
 
   @Delete('google/delete/:userId')
   @ApiTags('Social Login')
-  @ApiOperation({ summary: 'Google 사용자 삭제', description: 'UUID 또는 숫자 ID로 계정을 삭제합니다.' })
+  @ApiOperation({ 
+    summary: 'Google 사용자 삭제', 
+    description: 'UUID 또는 숫자 ID로 계정을 삭제합니다.' 
+  })
+  @ApiParam({
+    name: 'userId',
+    description: '사용자 UUID 또는 시퀀스 ID',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '사용자 삭제 성공',
+    schema: {
+      properties: {
+        message: { type: 'string', example: '사용자 삭제 완료' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: '사용자를 찾을 수 없음',
+    type: ErrorResponseDto 
+  })
   @HttpCode(200)
   async deleteGoogleUser(@Param('userId') userId: string) {
     return this.authService.deleteUser(userId);
@@ -154,8 +312,16 @@ export class AuthController {
     summary: 'Kakao 로그인 콜백',
     description: 'Kakao OAuth 인증 후 콜백을 처리하고 JWT 토큰을 발급합니다. 이메일 동의가 필요합니다.'
   })
-  @ApiResponse({ status: 200, description: '소셜 로그인 성공, JWT 토큰 반환' })
-  @ApiResponse({ status: 400, description: '이메일 정보가 제공되지 않음' })
+  @ApiResponse({ 
+    status: 200, 
+    description: '소셜 로그인 성공, JWT 토큰 반환',
+    type: LoginResponseDto 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: '이메일 정보가 제공되지 않음',
+    type: ErrorResponseDto 
+  })
   async kakaoCallback(@Req() req) {
     return this.authService.socialLogin(req.user);
   }
@@ -164,14 +330,49 @@ export class AuthController {
   @Post('kakao/login/callback')
   @UseGuards(AuthGuard('kakao'))
   @ApiTags('Social Login')
-  @ApiOperation({ summary: 'Kakao 로그인 콜백 (POST 별칭)', description: '명세 경로 지원용 별칭' })
+  @ApiOperation({ 
+    summary: 'Kakao 로그인 콜백 (POST 별칭)', 
+    description: '명세 경로 지원용 별칭' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '로그인 성공',
+    type: LoginResponseDto 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: '로그인 실패',
+    type: ErrorResponseDto 
+  })
   async kakaoCallbackPost(@Req() req) {
     return this.authService.socialLogin(req.user);
   }
 
   @Delete('kakao/delete/:userId')
   @ApiTags('Social Login')
-  @ApiOperation({ summary: 'Kakao 사용자 삭제', description: 'UUID 또는 숫자 ID로 계정을 삭제합니다.' })
+  @ApiOperation({ 
+    summary: 'Kakao 사용자 삭제', 
+    description: 'UUID 또는 숫자 ID로 계정을 삭제합니다.' 
+  })
+  @ApiParam({
+    name: 'userId',
+    description: '사용자 UUID 또는 시퀀스 ID',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '사용자 삭제 성공',
+    schema: {
+      properties: {
+        message: { type: 'string', example: '사용자 삭제 완료' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: '사용자를 찾을 수 없음',
+    type: ErrorResponseDto 
+  })
   @HttpCode(200)
   async deleteKakaoUser(@Param('userId') userId: string) {
     return this.authService.deleteUser(userId);
@@ -209,8 +410,16 @@ export class AuthController {
     summary: 'Naver 로그인 콜백',
     description: 'Naver OAuth 인증 후 콜백을 처리하고 JWT 토큰을 발급합니다. 이메일 동의가 필요합니다.'
   })
-  @ApiResponse({ status: 200, description: '소셜 로그인 성공, JWT 토큰 반환' })
-  @ApiResponse({ status: 400, description: '이메일 정보가 제공되지 않음' })
+  @ApiResponse({ 
+    status: 200, 
+    description: '소셜 로그인 성공, JWT 토큰 반환',
+    type: LoginResponseDto 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: '이메일 정보가 제공되지 않음',
+    type: ErrorResponseDto 
+  })
   async naverCallback(@Req() req) {
     return this.authService.socialLogin(req.user);
   }
@@ -219,14 +428,49 @@ export class AuthController {
   @Post('naver/login/callback')
   @UseGuards(AuthGuard('naver'))
   @ApiTags('Social Login')
-  @ApiOperation({ summary: 'Naver 로그인 콜백 (POST 별칭)', description: '명세 경로 지원용 별칭' })
+  @ApiOperation({ 
+    summary: 'Naver 로그인 콜백 (POST 별칭)', 
+    description: '명세 경로 지원용 별칭' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '로그인 성공',
+    type: LoginResponseDto 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: '로그인 실패',
+    type: ErrorResponseDto 
+  })
   async naverCallbackPost(@Req() req) {
     return this.authService.socialLogin(req.user);
   }
 
   @Delete('naver/delete/:userId')
   @ApiTags('Social Login')
-  @ApiOperation({ summary: 'Naver 사용자 삭제', description: 'UUID 또는 숫자 ID로 계정을 삭제합니다.' })
+  @ApiOperation({ 
+    summary: 'Naver 사용자 삭제', 
+    description: 'UUID 또는 숫자 ID로 계정을 삭제합니다.' 
+  })
+  @ApiParam({
+    name: 'userId',
+    description: '사용자 UUID 또는 시퀀스 ID',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '사용자 삭제 성공',
+    schema: {
+      properties: {
+        message: { type: 'string', example: '사용자 삭제 완료' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: '사용자를 찾을 수 없음',
+    type: ErrorResponseDto 
+  })
   @HttpCode(200)
   async deleteNaverUser(@Param('userId') userId: string) {
     return this.authService.deleteUser(userId);

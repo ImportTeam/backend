@@ -16,12 +16,18 @@ import {
   ApiResponse, 
   ApiBearerAuth,
   ApiParam,
+  ApiBody,
 } from '@nestjs/swagger';
 import { PaymentMethodsService } from './payment-methods.service';
 import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
 import { PaymentMethodEntity } from './entities/payment-method.entity';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { 
+  PaymentMethodResponseDto, 
+  PaymentMethodsListResponseDto,
+  ErrorResponseDto 
+} from '../common/dto/swagger-responses.dto';
 
 @ApiTags('Payment Methods')
 @ApiBearerAuth()
@@ -35,8 +41,33 @@ export class PaymentMethodsController {
     summary: '결제수단 등록',
     description: '새로운 결제수단을 등록합니다. is_primary를 true로 설정하면 기존 주 결제수단이 해제됩니다.'
   })
-  @ApiResponse({ status: 201, description: '결제수단 등록 성공', type: PaymentMethodEntity })
-  @ApiResponse({ status: 401, description: '인증 실패' })
+  @ApiBody({
+    type: CreatePaymentMethodDto,
+    examples: {
+      example1: {
+        value: {
+          alias: '내 신용카드',
+          cardToken: 'card_token_from_portone',
+          isPrimary: true
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 201, 
+    description: '결제수단 등록 성공', 
+    type: PaymentMethodResponseDto 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: '유효하지 않은 요청',
+    type: ErrorResponseDto 
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: '인증 실패',
+    type: ErrorResponseDto 
+  })
   async create(@Req() req, @Body() dto: CreatePaymentMethodDto) {
     const userUuid = req.user.uuid;
     const paymentMethod = await this.paymentMethodsService.create(userUuid, dto);
@@ -51,7 +82,16 @@ export class PaymentMethodsController {
     summary: '내 결제수단 목록 조회',
     description: '로그인한 사용자의 모든 결제수단을 조회합니다. 주 결제수단이 먼저 표시됩니다.'
   })
-  @ApiResponse({ status: 200, description: '조회 성공', type: [PaymentMethodEntity] })
+  @ApiResponse({ 
+    status: 200, 
+    description: '조회 성공', 
+    type: PaymentMethodsListResponseDto 
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: '인증 실패',
+    type: ErrorResponseDto 
+  })
   async findAll(@Req() req) {
     const userUuid = req.user.uuid;
     const paymentMethods = await this.paymentMethodsService.findAllByUser(userUuid);
@@ -66,7 +106,28 @@ export class PaymentMethodsController {
     summary: '결제수단 통계',
     description: '결제수단 개수, 타입별 개수, 주 결제수단 정보를 조회합니다.'
   })
-  @ApiResponse({ status: 200, description: '조회 성공' })
+  @ApiResponse({ 
+    status: 200, 
+    description: '조회 성공',
+    schema: {
+      properties: {
+        totalCount: { type: 'number', example: 3 },
+        byCardType: {
+          type: 'object',
+          example: { VISA: 2, MASTERCARD: 1 }
+        },
+        primary: { 
+          type: 'object', 
+          $ref: '#/components/schemas/PaymentMethodResponseDto'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: '인증 실패',
+    type: ErrorResponseDto 
+  })
   async getStatistics(@Req() req) {
     const userUuid = req.user.uuid;
     const statistics = await this.paymentMethodsService.getStatistics(userUuid);
@@ -78,10 +139,31 @@ export class PaymentMethodsController {
     summary: '특정 결제수단 조회',
     description: '결제수단 ID로 상세 정보를 조회합니다.'
   })
-  @ApiParam({ name: 'id', description: '결제수단 ID' })
-  @ApiResponse({ status: 200, description: '조회 성공', type: PaymentMethodEntity })
-  @ApiResponse({ status: 404, description: '결제수단을 찾을 수 없음' })
-  @ApiResponse({ status: 403, description: '접근 권한 없음' })
+  @ApiParam({ 
+    name: 'id', 
+    description: '결제수단 ID',
+    example: '1' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '조회 성공', 
+    type: PaymentMethodResponseDto 
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: '인증 실패',
+    type: ErrorResponseDto 
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: '접근 권한 없음',
+    type: ErrorResponseDto 
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: '결제수단을 찾을 수 없음',
+    type: ErrorResponseDto 
+  })
   async findOne(@Req() req, @Param('id', ParseIntPipe) id: number) {
     const userUuid = req.user.uuid;
     const paymentMethod = await this.paymentMethodsService.findOne(BigInt(id), userUuid);
@@ -95,9 +177,41 @@ export class PaymentMethodsController {
     summary: '결제수단 수정',
     description: '결제수단의 별칭(alias)을 수정합니다.'
   })
-  @ApiParam({ name: 'id', description: '결제수단 ID' })
-  @ApiResponse({ status: 200, description: '수정 성공', type: PaymentMethodEntity })
-  @ApiResponse({ status: 404, description: '결제수단을 찾을 수 없음' })
+  @ApiParam({ 
+    name: 'id', 
+    description: '결제수단 ID',
+    example: '1' 
+  })
+  @ApiBody({
+    type: UpdatePaymentMethodDto,
+    examples: {
+      example1: {
+        value: {
+          alias: '업데이트된 카드명'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '수정 성공', 
+    type: PaymentMethodResponseDto 
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: '유효하지 않은 요청',
+    type: ErrorResponseDto 
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: '인증 실패',
+    type: ErrorResponseDto 
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: '결제수단을 찾을 수 없음',
+    type: ErrorResponseDto 
+  })
   async update(
     @Req() req,
     @Param('id', ParseIntPipe) id: number,
@@ -116,9 +230,26 @@ export class PaymentMethodsController {
     summary: '주 결제수단으로 설정',
     description: '해당 결제수단을 주 결제수단으로 설정합니다. 기존 주 결제수단은 자동으로 해제됩니다.'
   })
-  @ApiParam({ name: 'id', description: '결제수단 ID' })
-  @ApiResponse({ status: 200, description: '설정 성공', type: PaymentMethodEntity })
-  @ApiResponse({ status: 404, description: '결제수단을 찾을 수 없음' })
+  @ApiParam({ 
+    name: 'id', 
+    description: '결제수단 ID',
+    example: '1' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '설정 성공', 
+    type: PaymentMethodResponseDto 
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: '인증 실패',
+    type: ErrorResponseDto 
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: '결제수단을 찾을 수 없음',
+    type: ErrorResponseDto 
+  })
   async setPrimary(@Req() req, @Param('id', ParseIntPipe) id: number) {
     const userUuid = req.user.uuid;
     const updated = await this.paymentMethodsService.setPrimary(BigInt(id), userUuid);
@@ -133,10 +264,35 @@ export class PaymentMethodsController {
     summary: '결제수단 삭제',
     description: '결제수단을 삭제합니다. 주 결제수단인 경우 다른 결제수단을 먼저 주 결제수단으로 설정해야 합니다.'
   })
-  @ApiParam({ name: 'id', description: '결제수단 ID' })
-  @ApiResponse({ status: 200, description: '삭제 성공' })
-  @ApiResponse({ status: 400, description: '주 결제수단은 삭제할 수 없음' })
-  @ApiResponse({ status: 404, description: '결제수단을 찾을 수 없음' })
+  @ApiParam({ 
+    name: 'id', 
+    description: '결제수단 ID',
+    example: '1' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: '삭제 성공',
+    schema: {
+      properties: {
+        message: { type: 'string', example: '결제수단이 삭제되었습니다.' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: '주 결제수단은 삭제할 수 없음',
+    type: ErrorResponseDto 
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: '인증 실패',
+    type: ErrorResponseDto 
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: '결제수단을 찾을 수 없음',
+    type: ErrorResponseDto 
+  })
   async remove(@Req() req, @Param('id', ParseIntPipe) id: number) {
     const userUuid = req.user.uuid;
     return this.paymentMethodsService.remove(BigInt(id), userUuid);

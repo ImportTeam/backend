@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { PortOneService } from '../portone/portone.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,6 +18,7 @@ export class IdentityVerificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly portOneService: PortOneService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -303,4 +305,229 @@ export class IdentityVerificationsService {
       throw error;
     }
   }
+
+  /**
+   * Pass 인증 검증 및 저장 (2차 인증)
+   * Frontend에서 받은 returnedIdentityId를 PortOne에서 검증하고 DB에 저장
+   */
+  async verifyPassIdentity(
+    userUuid: string,
+    returnedIdentityId: string,
+  ): Promise<any> {
+    try {
+      this.logger.log(
+        `Verifying Pass identity for user: ${userUuid}, returnedIdentityId: ${returnedIdentityId}`,
+      );
+
+      // PortOne API에서 Pass 인증 결과 조회
+      const passResult = await this.portOneService.verifyPassIdentity(returnedIdentityId);
+
+      // CI가 이미 존재하는지 확인(중복가입 방지)
+      if (passResult?.ci) {
+        const existingByCi = await this.prisma.identity_verifications.findUnique({
+          where: { ci: passResult.ci },
+        });
+
+        if (existingByCi && existingByCi.user_uuid !== userUuid) {
+          // 이미 동일한 CI가 다른 사용자에 의해 사용중
+          throw new BadRequestException('이미 다른 계정에서 사용된 인증 정보입니다.');
+        }
+        
+        // 동일한 사용자의 기존 Pass 인증이 있으면 상태만 업데이트하고 반환
+        if (existingByCi && existingByCi.user_uuid === userUuid) {
+          const updated = await this.prisma.identity_verifications.update({
+            where: { seq: existingByCi.seq },
+            data: {
+              portone_id: returnedIdentityId,
+              status: 'VERIFIED',
+              status_changed_at: new Date(),
+              customer_name: passResult.name || existingByCi.customer_name,
+              customer_phone: passResult.phone || existingByCi.customer_phone,
+              ci: passResult.ci || existingByCi.ci,
+              di: passResult.di || existingByCi.di,
+            },
+          });
+
+          return {
+            id: updated.uuid,
+            portoneId: updated.portone_id,
+            status: updated.status,
+            name: updated.customer_name,
+            phone: updated.customer_phone,
+            ci: updated.ci,
+            di: updated.di,
+            verifiedAt: updated.status_changed_at,
+            message: '이미 저장된 Pass 인증 기록을 업데이트했습니다.',
+          };
+        }
+      }
+
+      // DB에 저장
+      const verification = await this.prisma.identity_verifications.create({
+        data: {
+          uuid: uuidv4(),
+          user_uuid: userUuid,
+          portone_id: returnedIdentityId,
+          channel_key: 'PASS',
+          status: 'VERIFIED',
+          customer_name: passResult.name || 'Unknown',
+          customer_phone: passResult.phone,
+          customer_email: '',
+          ci: passResult.ci, // 개인 고유 식별자
+          di: passResult.di, // 중복 가입 확인용
+          method: 'PASS',
+          operator: 'PASS',
+          requested_at: new Date(),
+          status_changed_at: new Date(),
+        },
+      });
+
+      this.logger.log(`Pass identity verification saved: ${verification.seq}`);
+
+      return {
+        id: verification.uuid,
+        portoneId: returnedIdentityId,
+        status: 'VERIFIED',
+        name: passResult.name,
+        phone: passResult.phone,
+        ci: passResult.ci,
+        di: passResult.di,
+        verifiedAt: verification.status_changed_at,
+        message: 'Pass 인증이 완료되었습니다',
+      };
+    } catch (error) {
+      this.logger.error('Error verifying Pass identity:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * imp_uid를 통한 certified(예: KG이니시스) 본인인증 검증
+   * 프론트는 imp_uid를 전달하고, 백엔드는 PortOne(iamport)에서 결과를 조회하여 DB에 저장합니다.
+   */
+  async verifyCertifiedIdentity(userUuid: string, impUid: string): Promise<any> {
+    try {
+      this.logger.log(
+        `Verifying certified identity for user: ${userUuid}, impUid: ${impUid}`,
+      );
+
+      const certified = await this.portOneService.getCertificationByImpUid(impUid);
+
+      if (!certified) {
+        throw new BadRequestException('인증 정보를 찾을 수 없습니다.');
+      }
+
+      // CI 중복 검사
+      if (certified.uniqueKey) {
+        const existing = await this.prisma.identity_verifications.findUnique({
+          where: { ci: certified.uniqueKey },
+        });
+
+        if (existing && existing.user_uuid !== userUuid) {
+          throw new BadRequestException('이미 다른 계정에서 사용된 인증 정보입니다.');
+        }
+
+        if (existing && existing.user_uuid === userUuid) {
+          // 이미 사용자의 인증이 있으면 업데이트
+          const updated = await this.prisma.identity_verifications.update({
+            where: { seq: existing.seq },
+            data: {
+              portone_id: impUid,
+              channel_key: this.configService.get<string>('PORTONE_CERTIFIED_CHANEL_KEY') || 'KG_INIT',
+              status: 'VERIFIED',
+              status_changed_at: new Date(),
+              customer_name: certified.name || existing.customer_name,
+              customer_phone: certified.phone || existing.customer_phone,
+              ci: certified.uniqueKey || existing.ci,
+              di: certified.uniqueInSite || existing.di,
+            },
+          });
+
+          return {
+            id: updated.uuid,
+            portoneId: updated.portone_id,
+            status: updated.status,
+            name: updated.customer_name,
+            phone: updated.customer_phone,
+            ci: updated.ci,
+            di: updated.di,
+            verifiedAt: updated.status_changed_at,
+            message: '이미 저장된 인증 기록을 업데이트했습니다.',
+          };
+        }
+      }
+
+      // DB 생성
+      const verification = await this.prisma.identity_verifications.create({
+        data: {
+          uuid: uuidv4(),
+          user_uuid: userUuid,
+          portone_id: impUid,
+          channel_key: this.configService.get<string>('PORTONE_CERTIFIED_CHANEL_KEY') || '',
+          operator: 'KG',
+          method: 'CERTIFIED',
+          status: 'VERIFIED',
+          customer_name: certified.name || '',
+          customer_phone: certified.phone || '',
+          customer_email: '',
+          ci: certified.uniqueKey,
+          di: certified.uniqueInSite,
+          requested_at: new Date(),
+          status_changed_at: new Date(),
+        },
+      });
+
+      this.logger.log(`Certified identity verification saved: ${verification.seq}`);
+
+      return {
+        id: verification.uuid,
+        portoneId: verification.portone_id,
+        status: verification.status,
+        name: verification.customer_name,
+        phone: verification.customer_phone,
+        ci: verification.ci,
+        di: verification.di,
+        verifiedAt: verification.status_changed_at,
+        message: 'Certified 본인인증이 완료되었습니다',
+      };
+    } catch (error) {
+      this.logger.error('Error verifying certified identity: ', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 사용자의 최신 Pass 인증 정보 조회
+   */
+  async getLatestVerifiedIdentity(userUuid: string): Promise<any> {
+    try {
+      const verification = await this.prisma.identity_verifications.findFirst({
+        where: {
+          user_uuid: userUuid,
+          status: 'VERIFIED',
+          method: 'PASS',
+        },
+        orderBy: {
+          status_changed_at: 'desc',
+        },
+      });
+
+      if (!verification) {
+        throw new NotFoundException('인증된 정보가 없습니다');
+      }
+
+      return {
+        id: verification.uuid,
+        name: verification.customer_name,
+        phone: verification.customer_phone,
+        ci: verification.ci,
+        di: verification.di,
+        verifiedAt: verification.status_changed_at,
+      };
+    } catch (error) {
+      this.logger.error('Error getting latest verified identity:', error);
+      throw error;
+    }
+  }
 }
+

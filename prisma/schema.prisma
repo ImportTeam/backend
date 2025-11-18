@@ -150,8 +150,8 @@ model identity_verifications {
   // PortOne 정보
   portone_id          String   @unique           // PortOne Identity Verification ID
   channel_key         String   @db.VarChar(255)
-  operator            String   @db.VarChar(20)   // SKT, KT, LG, MVN
-  method              String   @db.VarChar(20)   // SMS, APP
+  operator            String   @db.VarChar(20)   // SKT, KT, LG, MVN, PASS
+  method              String   @db.VarChar(20)   // SMS, APP, PASS
   
   // 상태
   status              String   @db.VarChar(50)   // READY, SENT, VERIFIED, FAILED
@@ -160,6 +160,10 @@ model identity_verifications {
   customer_name       String?  @db.VarChar(100)
   customer_phone      String?  @db.VarChar(20)
   customer_email      String?  @db.VarChar(255)
+  
+  // Pass 인증 결과 (NICE 본인인증)
+  ci                  String?  @unique @db.VarChar(255)  // 개인 고유 식별자 (중복 계정 방지)
+  di                  String?  @db.VarChar(255)          // 중복 가입 확인용
   
   // 메타데이터
   custom_data         String?  @db.Text
@@ -175,6 +179,7 @@ model identity_verifications {
   @@index([portone_id])
   @@index([status])
   @@index([created_at])
+  @@index([ci])
 }
 
 // 카드/페이 혜택/프로모션 정보 저장 (크롤링/수동 입력)

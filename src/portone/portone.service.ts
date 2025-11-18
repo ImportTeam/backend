@@ -68,14 +68,51 @@ export class PortOneService {
     this.channelKey = this.configService.get<string>('PORTONE_CHANNEL_KEY') || '';
 
     if (!this.apiSecret) {
-      this.logger.error('PORTONE_API_SECRET is not set');
-      throw new Error('PORTONE_API_SECRET environment variable is required');
+      this.logger.warn('⚠️ PORTONE_API_SECRET is not set - PortOne API calls will fail');
     }
 
     if (!this.channelKey) {
-      this.logger.warn('PORTONE_CHANNEL_KEY is not set');
+      this.logger.warn('⚠️ PORTONE_CHANNEL_KEY is not set');
     }
   }
+
+    /**
+     * iamport (PortOne certified/KG) 토큰 발급
+     * 사용: PORTONE_CERTIFIED_API_KEY, PORTONE_CERTIFIED_API_SECRET
+     */
+    private async getIamportAccessToken(): Promise<string> {
+      try {
+        const impKey = this.configService.get<string>('PORTONE_CERTIFIED_API_KEY');
+        const impSecret = this.configService.get<string>('PORTONE_CERTIFIED_API_SECRET');
+
+        if (!impKey || !impSecret) {
+          this.logger.warn('PORTONE_CERTIFIED_API_KEY or SECRET not set');
+          throw new Error('Missing iamport credentials');
+        }
+
+        const url = `https://api.iamport.kr/users/getToken`;
+
+        const response = await lastValueFrom(
+          this.httpService.post(
+            url,
+            {
+              imp_key: impKey,
+              imp_secret: impSecret,
+            },
+            {
+              timeout: 60000,
+            },
+          ),
+        );
+
+        const token = response?.data?.response?.access_token;
+        if (!token) throw new Error('Unable to get iamport access token');
+        return token;
+      } catch (error) {
+        this.handleError(error, 'getIamportAccessToken');
+        throw error;
+      }
+    }
 
   /**
    * API 요청을 위한 헤더 생성
@@ -91,6 +128,46 @@ export class PortOneService {
     }
 
     return headers;
+  }
+
+  /**
+   * imp_uid를 받아 iamport의 certifications API를 이용해 결과를 조회합니다.
+   */
+  async getCertificationByImpUid(impUid: string): Promise<any> {
+    try {
+      const token = await this.getIamportAccessToken();
+
+      const url = `https://api.iamport.kr/certifications/${impUid}`;
+
+      const response = await lastValueFrom(
+        this.httpService.get(url, {
+          headers: {
+            Authorization: token,
+          },
+          timeout: 60000,
+        }),
+      );
+
+      const certInfo = response?.data?.response;
+
+      if (!certInfo) {
+        throw new Error('Certification not found');
+      }
+
+      return {
+        name: certInfo.name,
+        phone: certInfo.phone,
+        birthday: certInfo.birthday,
+        gender: certInfo.gender,
+        uniqueKey: certInfo.unique_key, // CI
+        uniqueInSite: certInfo.unique_in_site, // DI
+        carrier: certInfo.carrier,
+        impUid: certInfo.imp_uid || impUid,
+      };
+    } catch (error) {
+      this.handleError(error, 'getCertificationByImpUid');
+      throw error;
+    }
   }
 
   /**
@@ -460,6 +537,76 @@ export class PortOneService {
       return response.data as any;
     } catch (error) {
       this.handleError(error, 'getPayment');
+    }
+  }
+
+  /**
+   * Pass 인증 검증 (2차 인증)
+   * PortOne에서 returnedIdentityId를 통해 인증 결과 조회
+   */
+  async verifyPassIdentity(returnedIdentityId: string): Promise<
+    {
+      id: string;
+      status: string;
+      name?: string;
+      phone?: string;
+      birthDate?: string;
+      ci?: string;
+      di?: string;
+      verifiedAt?: string | Date;
+      message?: string;
+    }
+  > {
+    try {
+      this.logger.log(`Verifying Pass identity: ${returnedIdentityId}`);
+
+      const url = `${this.apiBaseUrl}/identity-verifications/${returnedIdentityId}`;
+
+      const response = await lastValueFrom(
+        this.httpService.get(url, {
+          headers: this.getHeaders(),
+          timeout: 60000,
+        }),
+      );
+
+      this.logger.log(`Pass identity verified successfully: ${returnedIdentityId}`);
+
+      // PortOne 응답 형식 처리
+      const data = response.data;
+
+      // PortOne 반환 형식은 환경에 따라 차이가 있으므로 여러 위치에서 정보를 조회합니다.
+      // 1) data.identityVerification (공식 API 기준) 2) data (some SDKs)
+      const iv = data.identityVerification || data;
+
+      const verifiedData = iv?.verified_at || iv?.verifiedAt || iv?.verified || iv?.verifiedData || iv;
+
+      const name = verifiedData?.name || verifiedData?.customer?.name || iv?.customer?.name || iv?.identity?.name;
+      const phone = verifiedData?.phone || verifiedData?.customer?.phone || iv?.customer?.phone || iv?.identity?.phone;
+      const birthDate = verifiedData?.birthDate || verifiedData?.birthday || iv?.birthday;
+      const ci = verifiedData?.ci || iv?.ci || iv?.identity?.ci;
+      const di = verifiedData?.di || iv?.di || iv?.identity?.di;
+      const verifiedAt = iv?.verifiedAt || verifiedData?.verifiedAt || verifiedData?.verified_at || new Date().toISOString();
+      return {
+        id: returnedIdentityId,
+        status: iv?.status || data?.status || 'VERIFIED',
+        name,
+        phone,
+        birthDate,
+        ci,
+        di,
+        verifiedAt,
+        message: 'Pass 인증이 완료되었습니다',
+      };
+    } catch (error) {
+      this.logger.error('Error verifying Pass identity:', error);
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Pass 인증 검증 실패',
+          error: error.message,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 }

@@ -58,7 +58,34 @@ class EnvironmentVariables {
   GOOGLE_REDIRECT_PROD_URI?: string;
   KAKAO_REDIRECT_PROD_URI?: string;
   NAVER_REDIRECT_PROD_URI?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  PORTONE_STORE_ID: string;
+  PORTONE_API_KEY : string;
+  PORTONE_API_SECRET: string;
+
+
+  @IsNotEmpty()
+  @IsString()
+  PORTONE_CHANNEL_KEY: string;
+  PORTONE_MID_KEY: string;
+
+  // Certified (KG 이니시스 등) - iamport token access
+  @IsNotEmpty()
+  @IsString()
+  PORTONE_CERTIFIED_API_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  PORTONE_CERTIFIED_API_SECRET: string;
+
+  // 채널(merchant/channel) key optional but often provided for certified flows
+  @IsNotEmpty()
+  @IsString()
+  PORTONE_CERTIFIED_CHANEL_KEY: string;
 }
+
 
 export function validate(config: Record<string, any>) {
   const validatedConfig = plainToInstance(EnvironmentVariables, config, {

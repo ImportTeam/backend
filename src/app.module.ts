@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -14,28 +15,34 @@ import { CrawlerModule } from './crawler/crawler.module';
 import { PortOneModule } from './portone/portone.module';
 import { IdentityVerificationsModule } from './identity-verifications/identity-verifications.module';
 import { BillingKeysModule } from './billing-keys/billing-keys.module';
+import { TestModule } from './test/test.module';
+import { join } from 'path';
 import { validate } from './config/env.validation';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 @Module({
   imports: [
+    // Serve only the test static files under /api/test
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+      serveRoot: '/api/test',
+      exclude: ['/api*'],
+    }),
     ConfigModule.forRoot({ 
       isGlobal: true, 
       validate 
     }),
-    ThrottlerModule.forRoot([
-      {
-        name: 'short',
-        ttl: 60000, // 1 minute
-        limit: 10,  // 10 requests per minute (default)
-      },
-      {
-        name: 'long',
-        ttl: 300000, // 5 minutes
-        limit: 30,  // 30 requests per 5 minutes (default)
-      },
-    ]),
+    // Keep simple global throttling; cast to any to avoid typing mismatch with custom named throttler config
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          limit: 10,
+          ttl: 60,
+        },
+      ],
+    }),
     ScheduleModule.forRoot(),
+    // Note: ServeStaticModule for serving the test files is configured above
     PrismaModule,
     UsersModule,
     AuthModule,
@@ -47,6 +54,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     PortOneModule,
     IdentityVerificationsModule,
     BillingKeysModule,
+    TestModule,
   ],
   providers: [
     {
