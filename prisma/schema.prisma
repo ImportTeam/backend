@@ -30,6 +30,9 @@ model users {
   social_id              String?
   name                   String
   preferred_payment_seq  BigInt?
+  is_verified            Boolean   @default(false)
+  verified_at            DateTime?
+  ci                     String?   @unique
   created_at             DateTime  @default(now())
   updated_at             DateTime  @updatedAt
 

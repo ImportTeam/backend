@@ -384,6 +384,20 @@ export class IdentityVerificationsService {
 
       this.logger.log(`Pass identity verification saved: ${verification.seq}`);
 
+      // 사용자 정보에 인증 상태 반영
+      try {
+        await this.prisma.users.update({
+          where: { uuid: userUuid },
+          data: {
+            is_verified: true,
+            verified_at: new Date(),
+            ci: passResult?.ci || undefined,
+          } as any,
+        });
+      } catch (err) {
+        this.logger.warn('Failed to update user verification status:', err?.message || err);
+      }
+
       return {
         id: verification.uuid,
         portoneId: returnedIdentityId,
@@ -480,6 +494,20 @@ export class IdentityVerificationsService {
       });
 
       this.logger.log(`Certified identity verification saved: ${verification.seq}`);
+
+      // 사용자 정보에 인증 상태 반영
+      try {
+        await this.prisma.users.update({
+          where: { uuid: userUuid },
+          data: {
+            is_verified: true,
+            verified_at: new Date(),
+            ci: certified?.uniqueKey || undefined,
+          } as any,
+        });
+      } catch (err) {
+        this.logger.warn('Failed to update user verification status:', err?.message || err);
+      }
 
       return {
         id: verification.uuid,

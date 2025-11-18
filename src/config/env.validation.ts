@@ -1,5 +1,5 @@
 import { plainToInstance } from 'class-transformer';
-import { IsNotEmpty, IsString, validateSync } from 'class-validator';
+import { IsNotEmpty, IsString, validateSync, IsOptional } from 'class-validator';
 
 class EnvironmentVariables {
   // Required
@@ -70,6 +70,15 @@ class EnvironmentVariables {
   @IsString()
   PORTONE_CHANNEL_KEY: string;
   PORTONE_MID_KEY: string;
+  // Iamport/PortOne JS merchant id used by IMP.init() (imp_...)
+  @IsString()
+  @IsOptional()
+  PORTONE_IMP_MERCHANT_ID?: string;
+
+  // PG Provider (e.g., inicis_unified, danal)
+  @IsString()
+  @IsOptional()
+  PORTONE_PG_PROVIDER?: string;
 
   // Certified (KG 이니시스 등) - iamport token access
   @IsNotEmpty()
@@ -85,7 +94,11 @@ class EnvironmentVariables {
   @IsString()
   PORTONE_CERTIFIED_CHANEL_KEY: string;
 
+  @IsNotEmpty()
+  @IsString()
+  NODE_ENV: string;
 }
+
 
 
 export function validate(config: Record<string, any>) {
