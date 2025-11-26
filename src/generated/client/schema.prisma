@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PaymentType {
+  CARD
+  PAYPAL
+  APPLEPAY
+  KAKAOPAY
+  NAVERPAY
+  ETC
+}
+
+enum DiscountType {
+  PERCENT
+  FLAT
+}
+
+model users {
+  seq                   BigInt    @id @default(autoincrement())
+  uuid                  String    @unique
+  email                 String?   @unique
+  password_hash         String?
+  social_provider       String    @default("NONE")
+  social_id             String?
+  name                  String
+  preferred_payment_seq BigInt?
+  is_verified           Boolean   @default(false)
+  verified_at           DateTime?
+  ci                    String?   @unique
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  payment_methods        payment_methods[]
+  user_sessions          user_sessions[]
+  user_settings          user_settings?
+  payment_transactions   payment_transactions[]
+  identity_verifications identity_verifications[]
+}
+
+model payment_methods {
+  seq       BigInt      @id @default(autoincrement())
+  user_uuid String
+  type      PaymentType
+
+  // 카드 기본 정보
+  card_number_hash String? @db.VarChar(255) // 암호화된 전체 카드번호 (복호화 가능)
+  last_4_nums      String  @db.Char(4) // 카드번호 뒷자리 (표시용)
+  card_holder_name String? @db.VarChar(100) // 카드 소유자 이름
+
+  // 카드사 정보
+  provider_name String  @db.VarChar(50) // 카드사명 (신한, 삼성, 비자 등)
+  card_brand    String? @db.VarChar(20) // 카드 브랜드 (VISA, MASTER, AMEX 등)
+
+  // 만료일 정보
+  expiry_month String? @db.Char(2) // 만료 월 (01-12)
+  expiry_year  String? @db.Char(4) // 만료 년도 (YYYY)
+
+  // CVC/CVV (암호화 저장)
+  cvv_hash String? @db.VarChar(255) // 암호화된 CVV/CVC
+
+  // 청구지 정보
+  billing_address String? @db.VarChar(255) // 청구지 주소
+  billing_zip     String? @db.VarChar(20) // 청구지 우편번호
+
+  // 부가 정보
+  alias      String? @db.VarChar(50) // 사용자 지정 별칭
+  is_primary Boolean @default(false) // 주 결제수단 여부
+
+  // PortOne Billing Key 정보
+  billing_key_id     String? @unique // PortOne Billing Key ID
+  billing_key_status String? @db.VarChar(50) // ISSUED, PENDING, DELETED
+
+  // 통신사 정보 (본인인증용)
+  operator String? @db.VarChar(20) // SKT, KT, LG, MVN
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user users @relation(fields: [user_uuid], references: [uuid], onDelete: Cascade)
+
+  @@index([user_uuid])
+  @@index([billing_key_id])
+  @@index([expiry_year, expiry_month])
+}
+
+model user_sessions {
+  seq           BigInt   @id @default(autoincrement())
+  user_seq      BigInt
+  access_token  String   @db.VarChar(500)
+  refresh_token String   @db.VarChar(500)
+  expires_at    DateTime
+  device_info   String?  @db.VarChar(255)
+  created_at    DateTime @default(now())
+
+  user users @relation(fields: [user_seq], references: [seq], onDelete: Cascade)
+
+  @@index([user_seq])
+  @@index([expires_at])
+}
+
+model user_settings {
+  user_seq             BigInt   @id
+  dark_mode            Boolean  @default(false)
+  notification_enabled Boolean  @default(true)
+  compare_mode         String   @default("AUTO")
+  currency_preference  String   @default("KRW")
+  updated_at           DateTime @updatedAt
+
+  user users @relation(fields: [user_seq], references: [seq], onDelete: Cascade)
+}
+
+// 사용자의 결제 내역 저장
+model payment_transactions {
+  seq                BigInt    @id @default(autoincrement())
+  uuid               String    @unique @db.Uuid
+  user_uuid          String
+  payment_method_seq BigInt?
+  merchant_name      String    @db.VarChar(255)
+  amount             Decimal   @db.Decimal(19, 2)
+  currency           String    @default("KRW")
+  benefit_value      Decimal?  @db.Decimal(19, 2)
+  benefit_desc       String?   @db.VarChar(255)
+  compared_at        DateTime?
+
+  // PortOne 결제 정보
+  portone_payment_id     String? @unique // PortOne Payment ID
+  portone_transaction_id String? @db.VarChar(255) // PortOne Transaction ID
+  status                 String  @default("PENDING") // PENDING, COMPLETED, FAILED, CANCELLED
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user users @relation(fields: [user_uuid], references: [uuid], onDelete: Cascade)
+
+  @@index([user_uuid, created_at])
+  @@index([payment_method_seq])
+  @@index([portone_payment_id])
+  @@index([status])
+}
+
+// 본인인증 이력 저장
+model identity_verifications {
+  seq       BigInt @id @default(autoincrement())
+  uuid      String @unique @db.Uuid
+  user_uuid String
+
+  // PortOne 정보
+  portone_id  String @unique // PortOne Identity Verification ID
+  channel_key String @db.VarChar(255)
+  operator    String @db.VarChar(20) // SKT, KT, LG, MVN, PASS
+  method      String @db.VarChar(20) // SMS, APP, PASS
+
+  // 상태
+  status String @db.VarChar(50) // READY, SENT, VERIFIED, FAILED
+
+  // 고객 정보
+  customer_name  String? @db.VarChar(100)
+  customer_phone String? @db.VarChar(20)
+  customer_email String? @db.VarChar(255)
+
+  // Pass 인증 결과 (NICE 본인인증)
+  ci String? @unique @db.VarChar(255) // 개인 고유 식별자 (중복 계정 방지)
+  di String? @db.VarChar(255) // 중복 가입 확인용
+
+  // 메타데이터
+  custom_data       String?  @db.Text
+  requested_at      DateTime
+  status_changed_at DateTime
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user users @relation(fields: [user_uuid], references: [uuid], onDelete: Cascade)
+
+  @@index([user_uuid])
+  @@index([portone_id])
+  @@index([status])
+  @@index([created_at])
+  @@index([ci])
+}
+
+// 카드/페이 혜택/프로모션 정보 저장 (크롤링/수동 입력)
+model benefit_offers {
+  id              BigInt       @id @default(autoincrement())
+  provider_name   String       @db.VarChar(50) // 카드사명 또는 페이명 (신한, 삼성, KAKAOPAY 등)
+  payment_type    PaymentType?
+  title           String       @db.VarChar(255)
+  description     String?      @db.Text
+  merchant_filter String?      @db.VarChar(255) // 포함 매칭(단순 문자열)
+  category_filter String?      @db.VarChar(100)
+  min_spend       Decimal?     @db.Decimal(19, 2)
+  discount_type   DiscountType
+  discount_value  Decimal      @db.Decimal(19, 2)
+  max_discount    Decimal?     @db.Decimal(19, 2)
+  start_date      DateTime?
+  end_date        DateTime?
+  active          Boolean      @default(true)
+  source_url      String?      @db.VarChar(255)
+  hash            String?      @unique @db.VarChar(64)
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  @@index([provider_name])
+  @@index([active, end_date])
+}
