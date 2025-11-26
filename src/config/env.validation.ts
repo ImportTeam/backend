@@ -94,6 +94,13 @@ class EnvironmentVariables {
   @IsString()
   PORTONE_CERTIFIED_CHANEL_KEY: string;
 
+
+  // REST API KEY
+  PORTONE_RESTAPI_KEY: string;
+  PORTONE_RESTAPI_SECRET: string;
+
+  
+
   @IsNotEmpty()
   @IsString()
   NODE_ENV: string;

@@ -26,7 +26,8 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
       serveRoot: '/api/test',
-      exclude: ['/api*'],
+      // Exclude all API routes from static file serving; use '/api' and '/api/*' to be compatible with path-to-regexp
+      exclude: ['/api', '/api/*'],
     }),
     ConfigModule.forRoot({ 
       isGlobal: true, 
@@ -54,7 +55,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     PortOneModule,
     IdentityVerificationsModule,
     BillingKeysModule,
-    TestModule,
+    // TestModule removed: unify tests to /api/identity-verifications/verify-pass/test
   ],
   providers: [
     {

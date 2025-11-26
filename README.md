@@ -30,6 +30,18 @@
 npm install
 ```
 
+## Identity verification test pages (dev)
+
+As requested, tests are unified to a single developer-only endpoint:
+
+- GET `/api/identity-verifications/verify-pass/test` — 개발 전용 단일 테스트 엔드포인트. `?returnedIdentityId=p_...` 쿼리로 PASS 결과를 조회하며 JWT가 없어도 작동합니다.
+
+Environment variables to set in development:
+- `PORTONE_IMP_MERCHANT_ID` — iamport merchant id
+- `PORTONE_PG_PROVIDER` — PG provider string (e.g., `inicis_unified`)
+
+Tip: If you want the test UI to call protected backend endpoints directly, paste a valid JWT into the "JWT 토큰 입력" field.
+
 ## Compile and run the project
 
 ```bash

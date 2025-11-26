@@ -21,6 +21,8 @@ import {
 import { IdentityVerificationsService } from './identity-verifications.service';
 import { Logger } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { PortOneService } from '../portone/portone.service';
+import { Public } from '../common/decorators/public.decorator';
 import {
   SendIdentityVerificationDto,
   ConfirmIdentityVerificationDto,
@@ -42,6 +44,7 @@ import {
 export class IdentityVerificationsController {
   constructor(
     private readonly identityVerificationsService: IdentityVerificationsService,
+    private readonly portOneService: PortOneService,
   ) {}
 
   private readonly logger = new Logger('IdentityVerificationsController');
@@ -402,6 +405,23 @@ export class IdentityVerificationsController {
       userUuid,
       dto.impUid,
     );
+  }
+
+  // Removed certified/test public endpoint — use verify-pass/test only per dev policy.
+
+  /**
+   * GET /identity-verifications/verify-pass/test?returnedIdentityId=p_xxx
+   * 개발용: JWT없이 Pass returnedIdentityId로 인증 정보를 확인할 수 있는 공개 엔드포인트
+   */
+  @Get('verify-pass/test')
+  @Public()
+  async verifyPassTest(@Query('returnedIdentityId') returnedIdentityId?: string) {
+    if (!returnedIdentityId) {
+      return { ok: true, message: 'Provide ?returnedIdentityId=p_xxx to fetch Pass verification info.' };
+    }
+
+    const res = await this.portOneService.verifyPassIdentity(returnedIdentityId);
+    return { ok: true, res };
   }
 
   /**
