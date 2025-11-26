@@ -139,6 +139,7 @@ model payment_transactions {
   user users @relation(fields: [user_uuid], references: [uuid], onDelete: Cascade)
 
   @@index([user_uuid, created_at])
+  @@index([user_uuid, status, created_at])
   @@index([payment_method_seq])
   @@index([portone_payment_id])
   @@index([status])
@@ -208,4 +209,5 @@ model benefit_offers {
 
   @@index([provider_name])
   @@index([active, end_date])
+  @@index([active, provider_name, end_date])
 }

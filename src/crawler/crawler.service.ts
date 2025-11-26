@@ -13,7 +13,7 @@ import { DEFAULT_SOURCES, CrawlerSource } from './sources';
 export class CrawlerService {
   private readonly logger = new Logger(CrawlerService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   // 4 환경변수 또는 기본값에서 불러옵니다.
   private getSources(): CrawlerSource[] {
@@ -34,22 +34,24 @@ export class CrawlerService {
       this.logger.warn('크롤링 대상이 비어 있습니다. CRAWLER_SOURCES를 설정하세요.');
       return;
     }
-    for (const s of sources) {
+
+    // 병렬 처리로 크롤링 속도 향상
+    const crawlPromises = sources.map(async (s) => {
       try {
         const html = await axios
           .get(s.url, {
-            timeout: 15000,
+            timeout: 10000, // 15초 -> 10초로 감소
             headers: {
-              // 일부 사이트가 User-Agent 미설정 요청을 차단하는 경우가 있어 설정
               'User-Agent': 'PicSelBot/1.0 (+https://example.com/bot)'
             },
-            // 리다이렉트 따라가기
             maxRedirects: 5,
             validateStatus: (status) => status >= 200 && status < 400,
           })
           .then((r) => String(r.data));
+
         const title = this.extractTitle(html) ?? '프로모션';
         const hash = this.hash(`${s.provider}|${s.url}|${title}`);
+
         await this.prisma.benefit_offers.upsert({
           where: { hash },
           update: {
@@ -70,10 +72,15 @@ export class CrawlerService {
             active: true,
           },
         });
+
+        this.logger.log(`✓ Crawled: ${s.provider}`);
       } catch (e) {
-        this.logger.warn(`Crawl failed: ${s.provider} - ${String(e)}`);
+        this.logger.warn(`✗ Crawl failed: ${s.provider} - ${String(e)}`);
       }
-    }
+    });
+
+    // 모든 크롤링 작업을 병렬로 실행
+    await Promise.all(crawlPromises);
     this.logger.log('Crawling finished');
   }
 

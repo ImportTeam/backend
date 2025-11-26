@@ -68,7 +68,7 @@ export class PaymentMethodsController {
     description: '인증 실패',
     type: ErrorResponseDto 
   })
-  async create(@Req() req, @Body() dto: CreatePaymentMethodDto) {
+  async create(@Req() req: any, @Body() dto: CreatePaymentMethodDto) {
     const userUuid = req.user.uuid;
     const paymentMethod = await this.paymentMethodsService.create(userUuid, dto);
     return {
@@ -92,7 +92,7 @@ export class PaymentMethodsController {
     description: '인증 실패',
     type: ErrorResponseDto 
   })
-  async findAll(@Req() req) {
+  async findAll(@Req() req: any) {
     const userUuid = req.user.uuid;
     const paymentMethods = await this.paymentMethodsService.findAllByUser(userUuid);
     return {
@@ -128,7 +128,7 @@ export class PaymentMethodsController {
     description: '인증 실패',
     type: ErrorResponseDto 
   })
-  async getStatistics(@Req() req) {
+  async getStatistics(@Req() req: any) {
     const userUuid = req.user.uuid;
     const statistics = await this.paymentMethodsService.getStatistics(userUuid);
     return statistics;
@@ -164,7 +164,7 @@ export class PaymentMethodsController {
     description: '결제수단을 찾을 수 없음',
     type: ErrorResponseDto 
   })
-  async findOne(@Req() req, @Param('id', ParseIntPipe) id: number) {
+  async findOne(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
     const userUuid = req.user.uuid;
     const paymentMethod = await this.paymentMethodsService.findOne(BigInt(id), userUuid);
     return {
@@ -213,7 +213,7 @@ export class PaymentMethodsController {
     type: ErrorResponseDto 
   })
   async update(
-    @Req() req,
+    @Req() req: any,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdatePaymentMethodDto,
   ) {
@@ -250,7 +250,7 @@ export class PaymentMethodsController {
     description: '결제수단을 찾을 수 없음',
     type: ErrorResponseDto 
   })
-  async setPrimary(@Req() req, @Param('id', ParseIntPipe) id: number) {
+  async setPrimary(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
     const userUuid = req.user.uuid;
     const updated = await this.paymentMethodsService.setPrimary(BigInt(id), userUuid);
     return {
@@ -293,7 +293,7 @@ export class PaymentMethodsController {
     description: '결제수단을 찾을 수 없음',
     type: ErrorResponseDto 
   })
-  async remove(@Req() req, @Param('id', ParseIntPipe) id: number) {
+  async remove(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
     const userUuid = req.user.uuid;
     return this.paymentMethodsService.remove(BigInt(id), userUuid);
   }

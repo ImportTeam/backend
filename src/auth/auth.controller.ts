@@ -224,7 +224,7 @@ export class AuthController {
     description: '로그인 실패',
     type: ErrorResponseDto 
   })
-  async googleCallback(@Req() req) {
+  async googleCallback(@Req() req: any) {
     return this.authService.socialLogin(req.user);
   }
 
@@ -246,7 +246,7 @@ export class AuthController {
     description: '로그인 실패',
     type: ErrorResponseDto 
   })
-  async googleCallbackPost(@Req() req) {
+  async googleCallbackPost(@Req() req: any) {
     return this.authService.socialLogin(req.user);
   }
 
@@ -322,7 +322,7 @@ export class AuthController {
     description: '이메일 정보가 제공되지 않음',
     type: ErrorResponseDto 
   })
-  async kakaoCallback(@Req() req) {
+  async kakaoCallback(@Req() req: any) {
     return this.authService.socialLogin(req.user);
   }
 
@@ -344,7 +344,7 @@ export class AuthController {
     description: '로그인 실패',
     type: ErrorResponseDto 
   })
-  async kakaoCallbackPost(@Req() req) {
+  async kakaoCallbackPost(@Req() req: any) {
     return this.authService.socialLogin(req.user);
   }
 
@@ -420,7 +420,7 @@ export class AuthController {
     description: '이메일 정보가 제공되지 않음',
     type: ErrorResponseDto 
   })
-  async naverCallback(@Req() req) {
+  async naverCallback(@Req() req: any) {
     return this.authService.socialLogin(req.user);
   }
 
@@ -442,7 +442,7 @@ export class AuthController {
     description: '로그인 실패',
     type: ErrorResponseDto 
   })
-  async naverCallbackPost(@Req() req) {
+  async naverCallbackPost(@Req() req: any) {
     return this.authService.socialLogin(req.user);
   }
 

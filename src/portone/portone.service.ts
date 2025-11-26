@@ -56,6 +56,9 @@ export class PortOneService {
   private readonly apiBaseUrl: string;
   private readonly channelKey: string;
 
+  // Token caching
+  private iamportTokenCache: { token: string; expiresAt: number } | null = null;
+
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
@@ -79,8 +82,16 @@ export class PortOneService {
     /**
      * iamport (PortOne certified/KG) 토큰 발급
      * 사용: PORTONE_CERTIFIED_API_KEY, PORTONE_CERTIFIED_API_SECRET
+     * 캐싱으로 불필요한 API 호출 감소
      */
     private async getIamportAccessToken(): Promise<string> {
+      // 캐시된 토큰이 있고 아직 유효하면 재사용
+      const now = Date.now();
+      if (this.iamportTokenCache && this.iamportTokenCache.expiresAt > now) {
+        this.logger.debug('Using cached iamport token');
+        return this.iamportTokenCache.token;
+      }
+
       try {
         const impKey = this.configService.get<string>('PORTONE_CERTIFIED_API_KEY');
         const impSecret = this.configService.get<string>('PORTONE_CERTIFIED_API_SECRET');
@@ -107,6 +118,14 @@ export class PortOneService {
 
         const token = response?.data?.response?.access_token;
         if (!token) throw new Error('Unable to get iamport access token');
+
+        // 토큰 캐싱 (30분 유효)
+        this.iamportTokenCache = {
+          token,
+          expiresAt: now + 30 * 60 * 1000, // 30분
+        };
+
+        this.logger.debug('New iamport token obtained and cached');
         return token;
       } catch (error) {
         this.handleError(error, 'getIamportAccessToken');

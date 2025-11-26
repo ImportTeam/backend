@@ -13,27 +13,21 @@ export class BenefitsService {
       this.prisma.benefit_offers.findMany({ where: { active: true } }),
     ]);
 
-    const results = [] as Array<{
-      provider_name: string;
-      method_seq?: bigint;
-      alias?: string | null;
-      last4?: string;
-      saved: number;
-      offerId?: bigint;
-      title?: string;
-    }>;
+    const results = methods.map((m) => {
+      // 해당 결제수단에 맞는 혜택을 필터링
+      const candidateOffers = offers.filter(
+        (o) =>
+          o.provider_name.toLowerCase() === m.provider_name.toLowerCase() &&
+          isActiveNow(o.start_date, o.end_date) &&
+          matchMerchant(merchant, o.merchant_filter) &&
+          (!o.min_spend || Number(o.min_spend) <= amount),
+      );
 
-    for (const m of methods) {
-      const candidate = offers
-        .filter((o) => o.provider_name.toLowerCase() === m.provider_name.toLowerCase())
-        .filter((o) => isActiveNow(o.start_date, o.end_date))
-        .filter((o) => matchMerchant(merchant, o.merchant_filter));
-
+      // 가장 큰 절약액 찾기
       let bestSaved = 0;
       let bestOffer: typeof offers[number] | undefined;
-      for (const o of candidate) {
-        const minSpendOk = !o.min_spend || Number(o.min_spend) <= amount;
-        if (!minSpendOk) continue;
+
+      for (const o of candidateOffers) {
         const saved = calcDiscount(
           amount,
           o.discount_type,
@@ -46,7 +40,7 @@ export class BenefitsService {
         }
       }
 
-      results.push({
+      return {
         provider_name: m.provider_name,
         method_seq: m.seq,
         alias: m.alias,
@@ -54,8 +48,8 @@ export class BenefitsService {
         saved: bestSaved,
         offerId: bestOffer?.id,
         title: bestOffer?.title ?? undefined,
-      });
-    }
+      };
+    });
 
     return results.sort((a, b) => b.saved - a.saved);
   }
