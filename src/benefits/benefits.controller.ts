@@ -1,12 +1,13 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { BenefitsService } from './benefits.service';
-import { ApiOperation, ApiQuery, ApiTags, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiTags, ApiResponse, ApiBody, ApiExtraModels } from '@nestjs/swagger';
 import { 
   BenefitsCompareResponseDto,
   ErrorResponseDto 
 } from '../common/dto/swagger-responses.dto';
 
-@ApiTags('Benefits')
+@ApiTags('혜택')
+@ApiExtraModels(ErrorResponseDto, BenefitsCompareResponseDto)
 @Controller('benefits')
 export class BenefitsController {
   constructor(private readonly benefits: BenefitsService) {}

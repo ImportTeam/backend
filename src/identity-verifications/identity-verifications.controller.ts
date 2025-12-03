@@ -17,6 +17,7 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiBody,
+  ApiExtraModels,
 } from '@nestjs/swagger';
 import { IdentityVerificationsService } from './identity-verifications.service';
 import { Logger } from '@nestjs/common';
@@ -36,7 +37,8 @@ import {
 } from '../common/dto/swagger-responses.dto';
 
 @Controller('identity-verifications')
-@ApiTags('Identity Verification')
+@ApiTags('본인 인증')
+@ApiExtraModels(ErrorResponseDto, IdentityVerificationResponseDto)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 export class IdentityVerificationsController {

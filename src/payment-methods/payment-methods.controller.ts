@@ -17,6 +17,7 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiBody,
+  ApiExtraModels,
 } from '@nestjs/swagger';
 import { PaymentMethodsService } from './payment-methods.service';
 import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
@@ -29,7 +30,8 @@ import {
   ErrorResponseDto 
 } from '../common/dto/swagger-responses.dto';
 
-@ApiTags('Payment Methods')
+@ApiTags('결제 수단')
+@ApiExtraModels(ErrorResponseDto, PaymentMethodResponseDto, PaymentMethodsListResponseDto)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('payment-methods')

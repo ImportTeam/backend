@@ -1,12 +1,21 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiExtraModels } from '@nestjs/swagger';
+import { ErrorResponseDto } from '../common/dto/swagger-responses.dto';
 
+@ApiTags('본인 인증')
+@ApiExtraModels(ErrorResponseDto)
+@ApiBearerAuth()
 @Controller('identity-verifications')
 export class IdentityVerificationsTestController {
   constructor(private readonly configService: ConfigService) {}
 
   @Get('test')
+  @ApiOperation({ summary: '본인인증 테스트 페이지', description: '브라우저에서 PASS/ImpUid 인증 테스트를 위한 간단한 HTML 페이지를 반환합니다. 개발/테스트 용도로만 사용하세요.' })
+  @ApiResponse({ status: 200, description: 'HTML 테스트 페이지 반환 (Content-Type: text/html)' })
+  @ApiResponse({ status: 400, description: '잘못된 요청', type: ErrorResponseDto })
+  @ApiResponse({ status: 500, description: '서버 오류', type: ErrorResponseDto })
   getTestPage(@Res() res: Response) {
     const impMerchant = this.configService.get<string>('PORTONE_IMP_MERCHANT_ID') || this.configService.get<string>('PORTONE_STORE_ID') || 'imp00000000';
     const pgProvider = this.configService.get<string>('PORTONE_PG_PROVIDER') || 'inicis_unified';

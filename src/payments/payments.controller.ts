@@ -2,13 +2,14 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { PaymentsService } from './payments.service';
 import { RecordPaymentDto } from './dto/record-payment.dto';
-import { ApiOperation, ApiTags, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiResponse, ApiBody, ApiExtraModels } from '@nestjs/swagger';
 import { 
   PaymentRecordResponseDto,
   ErrorResponseDto 
 } from '../common/dto/swagger-responses.dto';
 
-@ApiTags('Payments')
+@ApiTags('결제')
+@ApiExtraModels(ErrorResponseDto, PaymentRecordResponseDto)
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}

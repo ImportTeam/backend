@@ -58,12 +58,12 @@ async function bootstrap() {
       .setDescription('Payment Recommendation Backend API (Nest.js + Prisma + PostgreSQL/Neon)\n\n**인증**: Bearer 토큰을 Authorization 헤더에 포함시켜 사용합니다.\n\n**사용 예시**: `Authorization: Bearer YOUR_JWT_TOKEN`')
       .setVersion('1.0.0')
       .addBearerAuth()
-      .addTag('Auth', '일반 로그인 및 회원가입')
-      .addTag('Social Login', '소셜 로그인 (Google, Kakao, Naver)')
-      .addTag('Payment Methods', '결제수단 관리 (카드 등록/수정/삭제)')
-      .addTag('Benefits', '결제 혜택 비교 및 추천')
-      .addTag('Payments', '결제 기록 및 통계')
-      .addTag('Debug', '개발 및 디버그용 API')
+      .addTag('로그인', '일반 로그인 및 회원가입')
+      .addTag('소셜 로그인', '소셜 로그인 (Google, Kakao, Naver)')
+      .addTag('결제 수단', '결제 수단 관리 (카드 등록/수정/삭제)')
+      .addTag('혜택', '결제 혜택 비교 및 추천')
+      .addTag('결제', '결제 기록 및 통계')
+      .addTag('디버그', '개발 및 디버그용 API')
       .build();
     const doc = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('swagger', app, doc);

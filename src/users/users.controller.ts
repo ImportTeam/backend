@@ -1,14 +1,16 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { ApiOperation, ApiTags, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiResponse, ApiBody, ApiExtraModels } from '@nestjs/swagger';
 import { UserEntity } from './entities/user.entity';
 import { 
   RegisterResponseDto,
-  ErrorResponseDto 
+  ErrorResponseDto,
+  UnauthorizedErrorDto,
 } from '../common/dto/swagger-responses.dto';
 
-@ApiTags('Auth')
+@ApiTags('로그인')
+@ApiExtraModels(ErrorResponseDto, UnauthorizedErrorDto)
 @Controller('auth')
 export class UsersController {
   constructor(private readonly users: UsersService) {}

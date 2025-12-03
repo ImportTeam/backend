@@ -1,8 +1,9 @@
 import { Controller, Post } from '@nestjs/common';
 import { AdminService } from './admin.service';
-import { ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiResponse, ApiExtraModels } from '@nestjs/swagger';
 
-@ApiTags('Debug')
+@ApiTags('디버그')
+@ApiExtraModels()
 @Controller('admin')
 export class AdminController {
   constructor(private admin: AdminService) {}

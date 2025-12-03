@@ -20,6 +20,7 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiBody,
+  ApiExtraModels,
 } from '@nestjs/swagger';
 import { BillingKeysService } from './billing-keys.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -35,7 +36,8 @@ import {
 } from '../common/dto/swagger-responses.dto';
 
 @Controller('billing-keys')
-@ApiTags('Billing Keys')
+@ApiTags('결제 키')
+@ApiExtraModels(ErrorResponseDto, BillingKeyResponseDto, BillingKeysListResponseDto)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 export class BillingKeysController {
