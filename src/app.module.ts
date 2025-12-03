@@ -16,6 +16,7 @@ import { PortOneModule } from './portone/portone.module';
 import { IdentityVerificationsModule } from './identity-verifications/identity-verifications.module';
 import { BillingKeysModule } from './billing-keys/billing-keys.module';
 import { TestModule } from './test/test.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { join } from 'path';
 import { validate } from './config/env.validation';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -55,6 +56,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     IdentityVerificationsModule,
     BillingKeysModule,
     TestModule,
+    DashboardModule,
   ],
   providers: [
     {
