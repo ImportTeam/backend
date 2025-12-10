@@ -17,9 +17,9 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiBody,
+  ApiExtraModels,
 } from '@nestjs/swagger';
 import { IdentityVerificationsService } from './identity-verifications.service';
-import { Logger } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import {
   SendIdentityVerificationDto,
@@ -35,8 +35,9 @@ import {
   ErrorResponseDto,
 } from '../common/dto/swagger-responses.dto';
 
-@Controller('identity-verifications')
-@ApiTags('Identity Verification')
+@ApiTags('본인 인증')
+@Controller('identity/verifications')
+@ApiExtraModels(ErrorResponseDto, IdentityVerificationResponseDto)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 export class IdentityVerificationsController {
@@ -44,13 +45,7 @@ export class IdentityVerificationsController {
     private readonly identityVerificationsService: IdentityVerificationsService,
   ) {}
 
-  private readonly logger = new Logger('IdentityVerificationsController');
-
-  /**
-   * POST /identity-verifications/:portoneId/send
-   * 본인인증 요청 전송
-   */
-  @Post(':portoneId/send')
+  @Post(':portoneId/requests')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '본인인증 요청 전송',
@@ -117,11 +112,7 @@ export class IdentityVerificationsController {
     );
   }
 
-  /**
-   * POST /identity-verifications/:portoneId/confirm
-   * 본인인증 확인 (OTP 검증)
-   */
-  @Post(':portoneId/confirm')
+  @Post(':portoneId/confirmation')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '본인인증 확인 (OTP 검증)',
@@ -179,11 +170,7 @@ export class IdentityVerificationsController {
     );
   }
 
-  /**
-   * POST /identity-verifications/:portoneId/resend
-   * 본인인증 재전송
-   */
-  @Post(':portoneId/resend')
+  @Post(':portoneId/requests/resend')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '본인인증 OTP 재전송',
@@ -236,10 +223,54 @@ export class IdentityVerificationsController {
     );
   }
 
-  /**
-   * GET /identity-verifications/:portoneId
-   * 본인인증 단건 조회
-   */
+  @Post('pass-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'PASS 본인인증 검증',
+    description: 'Pass 인증 완료 후 반환된 identityId를 검증하여 사용자 본인인증 상태를 확정합니다.',
+  })
+  @ApiBody({
+    type: VerifyPassIdentityDto,
+    examples: { example1: { value: { returnedIdentityId: 'iv_1234567890' } } },
+  })
+  @ApiResponse({ status: 200, description: '검증 성공', type: IdentityVerificationResponseDto })
+  @ApiResponse({ status: 400, description: '유효하지 않은 요청', type: ErrorResponseDto })
+  @ApiResponse({ status: 401, description: '인증 실패 (JWT 토큰 필요)', type: ErrorResponseDto })
+  async verifyPass(
+    @Body() dto: VerifyPassIdentityDto,
+    @Request() req: any,
+  ) {
+    const userUuid = req.user.uuid;
+    return this.identityVerificationsService.verifyPassIdentity(
+      userUuid,
+      dto.returnedIdentityId,
+    );
+  }
+
+  @Post('certified-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Certified 본인인증 검증',
+    description: 'PortOne imp_uid를 이용해 인증 결과를 조회 및 검증합니다.',
+  })
+  @ApiBody({
+    type: VerifyCertifiedDto,
+    examples: { example1: { value: { impUid: 'imp_1234567890' } } },
+  })
+  @ApiResponse({ status: 200, description: '검증 성공', type: IdentityVerificationResponseDto })
+  @ApiResponse({ status: 400, description: '유효하지 않은 요청', type: ErrorResponseDto })
+  @ApiResponse({ status: 401, description: '인증 실패 (JWT 토큰 필요)', type: ErrorResponseDto })
+  async verifyCertified(
+    @Body() dto: VerifyCertifiedDto,
+    @Request() req: any,
+  ) {
+    const userUuid = req.user.uuid;
+    return this.identityVerificationsService.verifyCertifiedIdentity(
+      userUuid,
+      dto.impUid,
+    );
+  }
+
   @Get(':portoneId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -288,10 +319,6 @@ export class IdentityVerificationsController {
     );
   }
 
-  /**
-   * GET /identity-verifications
-   * 본인인증 다건 조회 (사용자별)
-   */
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -331,84 +358,7 @@ export class IdentityVerificationsController {
     );
   }
 
-  /**
-   * POST /identity-verifications/verify
-   * Pass 본인인증 검증 (2차 인증)
-   * Frontend에서 받은 returnedIdentityId를 PortOne에서 검증
-   */
-  @Post('verify')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Pass 본인인증 검증 (2차 인증)',
-    description:
-      'Frontend에서 Pass 인증 완료 후 returnedIdentityId를 backend에서 검증합니다.',
-  })
-  @ApiBody({ type: VerifyPassIdentityDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Pass 인증 검증 성공',
-    schema: { 
-      example: {
-        id: '550e8400-e29b-41d4-a716-446655440003',
-        status: 'VERIFIED',
-        name: '홍길동',
-        phone: '010-1234-5678',
-        ci: 'encoded_ci_value',
-        di: 'encoded_di_value',
-        verifiedAt: '2025-11-12T16:00:00.000Z',
-        message: 'Pass 인증이 완료되었습니다',
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Pass 인증 검증 실패',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: '인증 실패 (JWT 토큰 필요)',
-    type: ErrorResponseDto,
-  })
-  async verifyPassIdentity(
-    @Body() dto: VerifyPassIdentityDto,
-    @Request() req: any,
-  ) {
-    const userUuid = req.user.uuid;
-    return this.identityVerificationsService.verifyPassIdentity(
-      userUuid,
-      dto.returnedIdentityId,
-    );
-  }
-
-  /**
-   * POST /identity-verifications/certified
-   * imp_uid로 인증 결과 확인(예: KG이니시스)
-   */
-  @Post('certified')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Certified 본인인증 검증 (imp_uid)',
-    description: 'Frontend에서 imp_uid를 전송하면 포트원(iamport)으로부터 인증 정보를 조회합니다.',
-  })
-  @ApiBody({ type: VerifyCertifiedDto })
-  async verifyCertified(
-    @Body() dto: VerifyCertifiedDto,
-    @Request() req: any,
-  ) {
-    const userUuid = req.user.uuid;
-    this.logger.debug(`verifyCertified called: impUid=${dto.impUid}, userUuid=${userUuid}`);
-    return this.identityVerificationsService.verifyCertifiedIdentity(
-      userUuid,
-      dto.impUid,
-    );
-  }
-
-  /**
-   * GET /identity-verifications/my-verified
-   * 현재 사용자의 최신 Pass 인증 정보 조회
-   */
-  @Get('my-verified')
+  @Get('me/latest')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '현재 사용자의 최신 Pass 인증 정보 조회',

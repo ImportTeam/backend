@@ -14,6 +14,40 @@ export class CustomLoggerService implements LoggerService {
       fs.mkdirSync(logsDir);
     }
 
+    const isProduction = process.env.NODE_ENV === 'production';
+    const transports: winston.transport[] = [];
+
+    // Console transport (development에서 더 상세하게)
+    transports.push(
+      new winston.transports.Console({
+        format: winston.format.combine(
+          winston.format.colorize(),
+          winston.format.printf(({ level, message, timestamp, context, ...meta }) => {
+            const metaStr = Object.keys(meta).length ? JSON.stringify(meta) : '';
+            const ctx = context ? `[${context}] ` : '';
+            return `${timestamp} ${level}: ${ctx}${message} ${metaStr}`;
+          }),
+        ),
+      }),
+    );
+
+    // File transports (production에서만 또는 항상)
+    if (isProduction || process.env.LOG_TO_FILE === 'true') {
+      transports.push(
+        new winston.transports.File({
+          filename: path.join(logsDir, 'error.log'),
+          level: 'error',
+          maxsize: 10485760, // 10MB
+          maxFiles: 5,
+        }),
+        new winston.transports.File({
+          filename: path.join(logsDir, 'combined.log'),
+          maxsize: 10485760, // 10MB
+          maxFiles: 5,
+        }),
+      );
+    }
+
     // Winston 설정
     this.logger = winston.createLogger({
       level: process.env.LOG_LEVEL || 'info',
@@ -24,31 +58,7 @@ export class CustomLoggerService implements LoggerService {
         winston.format.json(),
       ),
       defaultMeta: { service: 'picsel-backend' },
-      transports: [
-        // 콘솔 출력 (개발/프로덕션)
-        new winston.transports.Console({
-          format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.printf(({ level, message, timestamp, ...meta }) => {
-              const metaStr = Object.keys(meta).length ? JSON.stringify(meta) : '';
-              return `${timestamp} [${level}]: ${message} ${metaStr}`;
-            }),
-          ),
-        }),
-        // 파일 로깅 (에러)
-        new winston.transports.File({
-          filename: path.join(logsDir, 'error.log'),
-          level: 'error',
-          maxsize: 5242880, // 5MB
-          maxFiles: 5,
-        }),
-        // 파일 로깅 (전체)
-        new winston.transports.File({
-          filename: path.join(logsDir, 'combined.log'),
-          maxsize: 5242880, // 5MB
-          maxFiles: 5,
-        }),
-      ],
+      transports,
     });
   }
 

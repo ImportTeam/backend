@@ -1,0 +1,2 @@
+-- BACKED UP: original Postgres migration moved to ../migrations_pg_backup_20251203/migration.sql
+-- This file cleared so Prisma can create a fresh MySQL migration history.

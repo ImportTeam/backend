@@ -17,6 +17,7 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiBody,
+  ApiExtraModels,
 } from '@nestjs/swagger';
 import { PaymentMethodsService } from './payment-methods.service';
 import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
@@ -29,7 +30,8 @@ import {
   ErrorResponseDto 
 } from '../common/dto/swagger-responses.dto';
 
-@ApiTags('Payment Methods')
+@ApiTags('결제수단')
+@ApiExtraModels(ErrorResponseDto, PaymentMethodResponseDto, PaymentMethodsListResponseDto)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('payment-methods')
@@ -68,7 +70,7 @@ export class PaymentMethodsController {
     description: '인증 실패',
     type: ErrorResponseDto 
   })
-  async create(@Req() req, @Body() dto: CreatePaymentMethodDto) {
+  async create(@Req() req: any, @Body() dto: CreatePaymentMethodDto) {
     const userUuid = req.user.uuid;
     const paymentMethod = await this.paymentMethodsService.create(userUuid, dto);
     return {
@@ -92,7 +94,7 @@ export class PaymentMethodsController {
     description: '인증 실패',
     type: ErrorResponseDto 
   })
-  async findAll(@Req() req) {
+  async findAll(@Req() req: any) {
     const userUuid = req.user.uuid;
     const paymentMethods = await this.paymentMethodsService.findAllByUser(userUuid);
     return {
@@ -128,7 +130,7 @@ export class PaymentMethodsController {
     description: '인증 실패',
     type: ErrorResponseDto 
   })
-  async getStatistics(@Req() req) {
+  async getStatistics(@Req() req: any) {
     const userUuid = req.user.uuid;
     const statistics = await this.paymentMethodsService.getStatistics(userUuid);
     return statistics;
@@ -164,7 +166,7 @@ export class PaymentMethodsController {
     description: '결제수단을 찾을 수 없음',
     type: ErrorResponseDto 
   })
-  async findOne(@Req() req, @Param('id', ParseIntPipe) id: number) {
+  async findOne(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
     const userUuid = req.user.uuid;
     const paymentMethod = await this.paymentMethodsService.findOne(BigInt(id), userUuid);
     return {
@@ -213,7 +215,7 @@ export class PaymentMethodsController {
     type: ErrorResponseDto 
   })
   async update(
-    @Req() req,
+    @Req() req: any,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdatePaymentMethodDto,
   ) {
@@ -225,7 +227,7 @@ export class PaymentMethodsController {
     };
   }
 
-  @Patch(':id/set-primary')
+  @Patch(':id/primary')
   @ApiOperation({ 
     summary: '주 결제수단으로 설정',
     description: '해당 결제수단을 주 결제수단으로 설정합니다. 기존 주 결제수단은 자동으로 해제됩니다.'
@@ -250,7 +252,7 @@ export class PaymentMethodsController {
     description: '결제수단을 찾을 수 없음',
     type: ErrorResponseDto 
   })
-  async setPrimary(@Req() req, @Param('id', ParseIntPipe) id: number) {
+  async setPrimary(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
     const userUuid = req.user.uuid;
     const updated = await this.paymentMethodsService.setPrimary(BigInt(id), userUuid);
     return {
@@ -293,7 +295,7 @@ export class PaymentMethodsController {
     description: '결제수단을 찾을 수 없음',
     type: ErrorResponseDto 
   })
-  async remove(@Req() req, @Param('id', ParseIntPipe) id: number) {
+  async remove(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
     const userUuid = req.user.uuid;
     return this.paymentMethodsService.remove(BigInt(id), userUuid);
   }

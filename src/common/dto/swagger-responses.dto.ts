@@ -26,7 +26,9 @@ export class LoginResponseDto {
     type: 'object',
     description: '로그인 응답 데이터',
     example: {
-      accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJpYXQiOjE3MzEzOTA5MjAsImV4cCI6MTczMTM5NDUyMH0.signature',
+      accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      issuedAt: '2025-12-08T11:00:00.000Z',
       user: {
         uuid: '550e8400-e29b-41d4-a716-446655440000',
         email: 'test@example.com',
@@ -38,6 +40,14 @@ export class LoginResponseDto {
       accessToken: {
         type: 'string',
         description: 'JWT 액세스 토큰 (Authorization 헤더에 사용)',
+      },
+      refreshToken: {
+        type: 'string',
+        description: 'JWT 리프래시 토큰 (장기 토큰)',
+      },
+      issuedAt: {
+        type: 'string',
+        description: '토큰 발급 시각 (ISO 8601)',
       },
       user: {
         type: 'object',
@@ -53,6 +63,8 @@ export class LoginResponseDto {
   })
   data: {
     accessToken: string;
+    refreshToken?: string;
+    issuedAt?: string;
     user: AuthUserDto;
   };
 }

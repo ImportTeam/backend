@@ -39,6 +39,12 @@ describe('AuthService', () => {
             findByEmail: jest.fn(),
             createSocialUser: jest.fn(),
             deleteByUserId: jest.fn(),
+            createSession: jest.fn(),
+            linkSocialAccountByEmail: jest.fn(),
+            findSessionByRefreshToken: jest.fn(),
+            findBySeq: jest.fn(),
+            deleteSessionByRefreshToken: jest.fn(),
+            updatePassword: jest.fn(),
           },
         },
         {

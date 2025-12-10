@@ -1,12 +1,15 @@
 import { Controller, Get, Res } from '@nestjs/common';
+import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 
+@ApiTags('테스트')
 @Controller('test/identity-verifications')
 export class IamportTestController {
   constructor(private readonly configService: ConfigService) {}
 
   @Get()
+  @ApiExcludeEndpoint()
   getTestPage(@Res() res: Response) {
     const impMerchant = this.configService.get<string>('PORTONE_IMP_MERCHANT_ID') || this.configService.get<string>('PORTONE_STORE_ID') || 'imp00000000';
     const pgProvider = this.configService.get<string>('PORTONE_PG_PROVIDER') || 'inicis_unified';

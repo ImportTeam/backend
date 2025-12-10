@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -118,7 +118,7 @@ model user_settings {
 // 사용자의 결제 내역 저장
 model payment_transactions {
   seq                 BigInt   @id @default(autoincrement())
-  uuid                String   @unique @db.Uuid
+  uuid                String   @unique @db.VarChar(36)
   user_uuid           String
   payment_method_seq  BigInt?
   merchant_name       String    @db.VarChar(255)
@@ -139,6 +139,7 @@ model payment_transactions {
   user users @relation(fields: [user_uuid], references: [uuid], onDelete: Cascade)
 
   @@index([user_uuid, created_at])
+  @@index([user_uuid, status, created_at])
   @@index([payment_method_seq])
   @@index([portone_payment_id])
   @@index([status])
@@ -147,7 +148,7 @@ model payment_transactions {
 // 본인인증 이력 저장
 model identity_verifications {
   seq                 BigInt   @id @default(autoincrement())
-  uuid                String   @unique @db.Uuid
+  uuid                String   @unique @db.VarChar(36)
   user_uuid           String
   
   // PortOne 정보
@@ -208,4 +209,5 @@ model benefit_offers {
 
   @@index([provider_name])
   @@index([active, end_date])
+  @@index([active, provider_name, end_date])
 }
