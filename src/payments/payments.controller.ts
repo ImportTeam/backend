@@ -8,17 +8,17 @@ import {
   ErrorResponseDto 
 } from '../common/dto/swagger-responses.dto';
 
-@ApiTags('결제')
+@ApiTags('결제 내역')
 @ApiExtraModels(ErrorResponseDto, PaymentRecordResponseDto)
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}
 
-  @Post('record')
+  @Post()
   @Throttle({ short: { limit: 10, ttl: 60000 } }) // 10 requests per minute
   @ApiOperation({ 
     summary: '결제 내역 기록', 
-    description: '사용자별 결제 내역을 저장하고 적용된 혜택을 기록합니다' 
+    description: '사용자의 결제 이벤트를 수집하여 결제 내역을 저장합니다. 이 과정에서 적용된 혜택(할인/적립) 정보를 함께 기록합니다. 인증 필요: 없음. 사용 시나리오: 카드 결제 완료 콜백 등.' 
   })
   @ApiBody({
     type: RecordPaymentDto,

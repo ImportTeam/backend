@@ -36,17 +36,13 @@ import {
 } from '../common/dto/swagger-responses.dto';
 
 @Controller('billing-keys')
-@ApiTags('결제 키')
+@ApiTags('빌링키')
 @ApiExtraModels(ErrorResponseDto, BillingKeyResponseDto, BillingKeysListResponseDto)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 export class BillingKeysController {
   constructor(private readonly billingKeysService: BillingKeysService) {}
 
-  /**
-   * POST /billing-keys
-   * 빌링키 발급
-   */
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -98,10 +94,6 @@ export class BillingKeysController {
     return this.billingKeysService.issueBillingKey(userUuid, dto);
   }
 
-  /**
-   * GET /billing-keys
-   * 사용자의 빌링키 목록 조회
-   */
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -141,10 +133,6 @@ export class BillingKeysController {
     return this.billingKeysService.listUserBillingKeys(userUuid, dto);
   }
 
-  /**
-   * GET /billing-keys/:id
-   * 빌링키 단건 조회
-   */
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -195,10 +183,6 @@ export class BillingKeysController {
     );
   }
 
-  /**
-   * DELETE /billing-keys/:id
-   * 빌링키 삭제
-   */
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -242,11 +226,7 @@ export class BillingKeysController {
     return this.billingKeysService.deleteBillingKey(userUuid, String(id));
   }
 
-  /**
-   * PATCH /billing-keys/:id/default
-   * 기본 빌링키 설정
-   */
-  @Patch(':id/default')
+  @Post(':id/default')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '기본 빌링키 설정',

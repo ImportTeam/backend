@@ -16,5 +16,6 @@ module.exports = {
   testEnvironment: 'node',
   moduleNameMapper: {
     '^src/(.*)$': '<rootDir>/src/$1',
+    '^uuid$': '<rootDir>/test/mocks/uuid.ts',
   },
 };

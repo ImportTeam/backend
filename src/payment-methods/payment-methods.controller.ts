@@ -30,7 +30,7 @@ import {
   ErrorResponseDto 
 } from '../common/dto/swagger-responses.dto';
 
-@ApiTags('결제 수단')
+@ApiTags('결제수단')
 @ApiExtraModels(ErrorResponseDto, PaymentMethodResponseDto, PaymentMethodsListResponseDto)
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -227,7 +227,7 @@ export class PaymentMethodsController {
     };
   }
 
-  @Patch(':id/set-primary')
+  @Patch(':id/primary')
   @ApiOperation({ 
     summary: '주 결제수단으로 설정',
     description: '해당 결제수단을 주 결제수단으로 설정합니다. 기존 주 결제수단은 자동으로 해제됩니다.'

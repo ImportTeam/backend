@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiExtraModels } from '@nestjs/swagger';
 import { ErrorResponseDto } from '../common/dto/swagger-responses.dto';
 
-@ApiTags('본인 인증')
+@ApiTags('본인 인증: 이력')
 @ApiExtraModels(ErrorResponseDto)
 @ApiBearerAuth()
 @Controller('identity-verifications')

@@ -26,26 +26,29 @@ async function bootstrap() {
     const logger = new CustomLoggerService();
     app.useLogger(logger);
 
+    // NOTE: Removed request rewrite middleware. Keep routes consistent
+    // so that Swagger and runtime paths both use the `/api` global prefix.
+
+    // 디버그: 모든 들어오는 요청의 원본 URL을 로깅합니다.
+    // OAuth 리다이렉트가 어떤 경로로 들어오는지 확인하기 위해 추가함.
+    app.use((req: any, _res: any, next: any) => {
+      logger.debug && logger.debug(`[Incoming Request] ${req.method} originalUrl=${req.originalUrl} url=${req.url}`);
+      next();
+    });
+
     console.log('[Bootstrap] Logger initialized');
 
     // CORS 설정 (NODE_ENV에 따라 다르게).
     console.log(`[Bootstrap] NODE_ENV: ${process.env.NODE_ENV}, isDevelopment: ${isDevelopment}`);
     
     app.enableCors({
-      origin: isDevelopment 
+      origin: isDevelopment
         ? true // 개발 환경: 모든 origin 허용
         : [
             process.env.FRONTEND_URL || 'https://picsel.example.com', // 프로덕션: 특정 도메인만
           ],
       credentials: true,
     });
-
-    // Static Files 서빙 (Public 폴더)
-    const staticPath = join(process.cwd(), 'public');
-    app.useStaticAssets(staticPath, {
-      prefix: '/api/auth/test/public/', // test files
-    });
-
     // API prefix를 /api 로 통일
     app.setGlobalPrefix('api');
 
@@ -55,15 +58,21 @@ async function bootstrap() {
     console.log('[Bootstrap] Setting up Swagger...');
     const config = new DocumentBuilder()
       .setTitle('PicSel API')
-      .setDescription('Payment Recommendation Backend API (Nest.js + Prisma + PostgreSQL/Neon)\n\n**인증**: Bearer 토큰을 Authorization 헤더에 포함시켜 사용합니다.\n\n**사용 예시**: `Authorization: Bearer YOUR_JWT_TOKEN`')
+      .setDescription('PicSel 결제 추천 백엔드 API (NestJS + Prisma)\n\n인증: Bearer 토큰을 Authorization 헤더에 포함해 사용합니다.\n예: `Authorization: Bearer <JWT>`')
       .setVersion('1.0.0')
       .addBearerAuth()
-      .addTag('로그인', '일반 로그인 및 회원가입')
-      .addTag('소셜 로그인', '소셜 로그인 (Google, Kakao, Naver)')
-      .addTag('결제 수단', '결제 수단 관리 (카드 등록/수정/삭제)')
-      .addTag('혜택', '결제 혜택 비교 및 추천')
-      .addTag('결제', '결제 기록 및 통계')
-      .addTag('디버그', '개발 및 디버그용 API')
+      // 도메인 기반 태그 정의 (한글 태그명, 컨트롤러 @ApiTags와 일치)
+      .addTag('시스템', '기본 헬스체크 및 루트 엔드포인트')
+      .addTag('인증', '이메일/비밀번호 로그인, 토큰 재발급 및 로그아웃')
+      .addTag('사용자 관리', '사용자 탈퇴 등 계정 라이프사이클 관리')
+      .addTag('본인 인증', 'PASS/Certified 본인인증 요청/검증/상태/이력 조회 전반')
+      .addTag('결제수단', '결제수단 등록/조회/수정/삭제 및 주 결제수단 설정')
+      .addTag('빌링키', '정기 결제를 위한 빌링키 발급/조회/삭제/기본 설정')
+      .addTag('결제 내역', '결제 내역 기록 및 적용 혜택/통계 정보 제공')
+      .addTag('혜택', '혜택 비교/추출/추천 관련 API')
+      .addTag('대시보드', '절약 금액, Top 가맹점/결제수단 등 요약 통계 조회')
+      .addTag('테스트', '내부 테스트 및 실험용 API')
+      .addTag('디버그', '개발/운영 편의를 위한 관리자·디버그용 API (일부 비공개)')
       .build();
     const doc = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('swagger', app, doc);

@@ -27,7 +27,7 @@ describe('PaymentMethodsService', () => {
     last_4_nums: '1111',
     card_brand: 'VISA',
     expiry_month: '12',
-    expiry_year: '2025',
+    expiry_year: '2099',
     cvv_hash: 'encrypted_123',
     is_primary: true,
     created_at: new Date(),
@@ -70,7 +70,7 @@ describe('PaymentMethodsService', () => {
         type: PaymentType.CARD,
         card_number: '4111111111111111',
         expiry_month: '12',
-        expiry_year: '2025',
+        expiry_year: '2099',
         card_brand: 'VISA',
         cvv: '123',
         provider_name: 'Shinhan Card',
@@ -120,7 +120,7 @@ describe('PaymentMethodsService', () => {
         type: PaymentType.CARD,
         card_number: '4111111111111111',
         expiry_month: '12',
-        expiry_year: '2025',
+        expiry_year: '2099',
         card_brand: 'VISA',
         cvv: '123',
         provider_name: 'Shinhan Card',
@@ -191,7 +191,7 @@ describe('PaymentMethodsService', () => {
     it('should update a payment method', async () => {
       const updateDto: UpdatePaymentMethodDto = {
         expiry_month: '11',
-        expiry_year: '2026',
+        expiry_year: '2099',
       };
 
       (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(mockPaymentMethod);
@@ -211,7 +211,7 @@ describe('PaymentMethodsService', () => {
       const otherUserUuid = '550e8400-e29b-41d4-a716-446655440001';
       const updateDto: UpdatePaymentMethodDto = {
         expiry_month: '12',
-        expiry_year: '2025',
+        expiry_year: '2099',
       };
 
       (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue({

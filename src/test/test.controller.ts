@@ -1,13 +1,14 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { HealthResponseDto } from './dto/health-response.dto';
 import * as os from 'os';
 
 @ApiExtraModels(HealthResponseDto)
-@ApiTags('Test')
+@ApiTags('테스트')
 @Controller('test')
 export class TestController {
   @Get('health')
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: '서버 헬스 체크 및 진단 정보' })
   @ApiResponse({ status: 200, description: '서버 및 응답 시간 정보', type: HealthResponseDto })
   async health() {
