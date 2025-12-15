@@ -24,6 +24,26 @@
 
 상세 스펙과 테스트는 Swagger UI(`/swagger`)에서 확인할 수 있습니다.
 
+## Deployment (AWS EC2, no Docker)
+
+이 레포는 GitHub Actions로 EC2에 무도커 배포를 지원합니다.
+
+- Workflow: [.github/workflows/deploy-ec2.yml](.github/workflows/deploy-ec2.yml)
+- 방식: GitHub Actions에서 `pnpm build` → `dist` 아카이브 업로드 → EC2에서 `pnpm install --prod` 후 `pm2` 재시작
+
+필수 GitHub Secrets
+
+- `EC2_HOST`: 예) `3.38.107.119`
+- `EC2_USER`: 예) `ec2-user`
+- `EC2_PORT`: 예) `22`
+- `EC2_SSH_KEY`: EC2에 등록된 SSH private key (권장: password login 비활성화)
+
+EC2 준비
+
+- Node.js + npm 설치
+- 앱 디렉터리 생성: `/home/ec2-user/picsel-backend`
+- 런타임 환경변수는 `/home/ec2-user/picsel-backend/.env`로 관리 (`.env`는 Git에 커밋하지 않음)
+
 ## Project setup
 
 ```bash
