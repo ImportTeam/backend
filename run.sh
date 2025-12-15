@@ -2,23 +2,33 @@
 set -e
 
 APP_NAME="picsel-backend"
+BRANCH="main"
 
-echo "=== Git Pull ==="
-git pull origin main
+echo "=== Move to project directory ==="
+cd /home/ec2-user/app/picsel-backend
 
-echo "=== Install Dependencies ==="
-pnpm install --frozen-lockfile
+echo "=== Fetch latest code ==="
+git fetch origin
 
-echo "=== Prisma Generate ==="
-pnpm prisma generate
+echo "=== Checkout main branch ==="
+git checkout $BRANCH
 
-echo "=== Build (Production) ==="
+echo "=== Pull latest changes ==="
+git pull origin $BRANCH
+
+echo "=== Install dependencies ==="
+pnpm install
+
+echo "=== Prisma generate ==="
+pnpm exec prisma generate
+
+echo "=== Build (production) ==="
 pnpm build:prod
 
-echo "=== Restart App (PM2) ==="
+echo "=== Restart app with PM2 ==="
 pm2 delete $APP_NAME || true
 pm2 start dist/src/main.js --name $APP_NAME
 
 pm2 save
 
-echo "=== Deploy Finished ==="
+echo "=== Deploy finished successfully ==="
