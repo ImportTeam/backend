@@ -25,9 +25,15 @@ async function bootstrap() {
     // 커스텀 로거 설정
     const logger = new CustomLoggerService();
     app.useLogger(logger);
-
-    // NOTE: Removed request rewrite middleware. Keep routes consistent
-    // so that Swagger and runtime paths both use the `/api` global prefix.
+    // Swagger 캐시 완전 차단 (Cloudflare / 브라우저 캐시 방지)
+    app.use((req: any, res: any, next: any) => {
+      if (req.url.startsWith('/swagger')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+      next();
+    });
 
     // 디버그: 모든 들어오는 요청의 원본 URL을 로깅합니다.
     // OAuth 리다이렉트가 어떤 경로로 들어오는지 확인하기 위해 추가함.
@@ -60,6 +66,7 @@ async function bootstrap() {
       .setTitle('PicSel API')
       .setDescription('PicSel 결제 추천 백엔드 API (NestJS + Prisma)\n\n인증: Bearer 토큰을 Authorization 헤더에 포함해 사용합니다.\n예: `Authorization: Bearer <JWT>`')
       .setVersion('1.0.0')
+      .addServer("https://api.picsel.kr") 
       .addBearerAuth()
       // 도메인 기반 태그 정의 (한글 태그명, 컨트롤러 @ApiTags와 일치)
       .addTag('시스템', '기본 헬스체크 및 루트 엔드포인트')
