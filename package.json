@@ -7,7 +7,7 @@
     "start": "node dist/src/main.js",
     "dev": "nest start --watch",
     "build": "nest build",
-    "build:prod": "rimraf dist && nest build --webpack",
+    "build:prod": "npx rimraf dist && nest build",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
