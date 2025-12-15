@@ -1,17 +1,27 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels, ApiExcludeEndpoint } from '@nestjs/swagger';
+import {
+  ApiExtraModels,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { HealthResponseDto } from './dto/health-response.dto';
 import * as os from 'os';
+import { ApiExcludeEndpointInProd } from '../common/swagger/api-exclude-endpoint-in-prod.decorator';
 
 @ApiExtraModels(HealthResponseDto)
 @ApiTags('테스트')
 @Controller('test')
 export class TestController {
   @Get('health')
-  @ApiExcludeEndpoint()
+  @ApiExcludeEndpointInProd()
   @ApiOperation({ summary: '서버 헬스 체크 및 진단 정보' })
-  @ApiResponse({ status: 200, description: '서버 및 응답 시간 정보', type: HealthResponseDto })
-  async health() {
+  @ApiResponse({
+    status: 200,
+    description: '서버 및 응답 시간 정보',
+    type: HealthResponseDto,
+  })
+  health(): HealthResponseDto {
     const start = process.hrtime.bigint();
 
     const serverTime = new Date().toISOString();
@@ -21,7 +31,7 @@ export class TestController {
 
     const end = process.hrtime.bigint();
     const durationNs = Number(end - start);
-    const responseTimeMs = Math.round(durationNs / 1_000_000 * 100) / 100; // ms with 2 decimals
+    const responseTimeMs = Math.round((durationNs / 1_000_000) * 100) / 100; // ms with 2 decimals
 
     return {
       status: 'ok',
@@ -32,7 +42,7 @@ export class TestController {
         rss: memory.rss,
         heapTotal: memory.heapTotal,
         heapUsed: memory.heapUsed,
-        external: (memory as any).external ?? 0,
+        external: (memory as unknown as { external?: number }).external ?? 0,
       },
       loadavg,
       responseTimeMs,

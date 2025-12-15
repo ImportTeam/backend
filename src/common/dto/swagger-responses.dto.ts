@@ -324,11 +324,27 @@ export class ErrorResponseDto {
   @ApiProperty({ example: 400, description: 'HTTP 상태 코드' })
   statusCode: number;
 
-  @ApiProperty({ example: '이메일이 이미 존재합니다', description: '에러 메시지' })
+  @ApiProperty({ example: '이메일이 이미 존재합니다', description: '에러 메시지(호환용)' })
   message: string;
 
-  @ApiProperty({ example: 'ConflictException', description: '에러 타입' })
-  error: string;
+  @ApiProperty({ example: 'ConflictException', description: '에러 타입(호환용)' })
+  errorType: string;
+
+  @ApiProperty({
+    description: '공통 에러 포맷',
+    example: {
+      code: 'CONFLICT',
+      message: '이메일이 이미 존재합니다',
+      details: {
+        field: 'email',
+      },
+    },
+  })
+  error: {
+    code: string;
+    message: string;
+    details?: any;
+  };
 }
 
 export class UnauthorizedErrorDto {

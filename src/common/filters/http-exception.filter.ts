@@ -5,6 +5,32 @@ import { Request, Response } from 'express';
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
+  private toErrorCode(status: number, errorType?: string, hasValidationErrors?: boolean) {
+    if (hasValidationErrors) return 'VALIDATION_ERROR';
+
+    switch (status) {
+      case HttpStatus.BAD_REQUEST:
+        return 'BAD_REQUEST';
+      case HttpStatus.UNAUTHORIZED:
+        return 'UNAUTHORIZED';
+      case HttpStatus.FORBIDDEN:
+        return 'FORBIDDEN';
+      case HttpStatus.NOT_FOUND:
+        return 'NOT_FOUND';
+      case HttpStatus.CONFLICT:
+        return 'CONFLICT';
+      case HttpStatus.UNPROCESSABLE_ENTITY:
+        return 'UNPROCESSABLE_ENTITY';
+      default:
+        break;
+    }
+
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) return 'INTERNAL_SERVER_ERROR';
+
+    // fallback
+    return (errorType || 'UNKNOWN_ERROR').toUpperCase();
+  }
+
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -19,18 +45,44 @@ export class HttpExceptionFilter implements ExceptionFilter {
       method: request.method,
     };
 
+    let errorType: string | undefined;
+    let details: any = undefined;
+    let preferredCode: string | undefined;
+
     if (typeof exceptionResponse === 'object') {
       const { message, ...rest } = exceptionResponse as any;
       errorResponse.message = Array.isArray(message) ? message.join(', ') : message;
-      errorResponse.error = rest.error || null;
+      errorType = rest.error || rest.name || exception.name;
+      errorResponse.errorType = errorType || null;
       
       // Validation 에러의 경우 detailed errors 포함
       if (rest.message && Array.isArray(rest.message)) {
         errorResponse.errors = rest.message;
+        details = rest.message;
+      }
+
+      // 커스텀 에러 코드가 전달된 경우 우선 적용
+      if (rest.code && typeof rest.code === 'string') {
+        preferredCode = rest.code;
+      }
+
+      // error: { code, message, details } 형태로 던진 경우
+      if (rest.error && typeof rest.error === 'object' && rest.error.code) {
+        preferredCode = rest.error.code;
+        if (rest.error.details !== undefined) details = rest.error.details;
       }
     } else {
       errorResponse.message = exceptionResponse;
+      errorType = exception.name;
+      errorResponse.errorType = errorType || null;
     }
+
+    const code = preferredCode || this.toErrorCode(status, errorType, Array.isArray(details));
+    errorResponse.error = {
+      code,
+      message: errorResponse.message,
+      ...(details !== undefined ? { details } : {}),
+    };
 
     // 로그 레벨 결정
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {

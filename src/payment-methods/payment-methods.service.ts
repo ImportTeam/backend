@@ -1,17 +1,37 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
+import { endOfMonth, startOfMonth, subMonths } from 'date-fns';
 import { 
   encrypt, 
   getLast4Digits, 
   validateCardNumber, 
   detectCardBrand 
 } from '../common/encryption.util';
+import { POPBILL_CLIENT } from '../external';
+import type { PopbillClient } from '../external/popbill/popbill.client';
 
 @Injectable()
 export class PaymentMethodsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(POPBILL_CLIENT) private readonly popbillClient: PopbillClient,
+  ) {}
+
+  private toNumber(value: any) {
+    if (value === null || value === undefined) return 0;
+    try {
+      return Number(value);
+    } catch {
+      return 0;
+    }
+  }
+
+  private formatKrw(amount: number) {
+    const safe = Number.isFinite(amount) ? amount : 0;
+    return `${safe.toLocaleString('ko-KR')}원`;
+  }
 
   // 결제수단 등록
   async create(userUuid: string, dto: CreatePaymentMethodDto) {
@@ -209,6 +229,90 @@ export class PaymentMethodsService {
     });
 
     return statistics;
+  }
+
+  /**
+   * D1. 카드 추가 흐름 시작 (Popbill 연동)
+   * - 현재는 Popbill 실제 호출 없이도 FE 연동이 가능하도록 스텁으로 동작합니다.
+   */
+  async startCardRegistration(userUuid: string) {
+    return this.popbillClient.startCardRegistration({ userUuid });
+  }
+
+  /**
+   * D2. 카드 상세 정보 조회
+   * - 이번 달 사용 금액/횟수
+   * - 한도(가능 시 Popbill) / 불가 시 추정치 구조
+   */
+  async getCardDetail(seq: bigint, userUuid: string) {
+    const pm = await this.findOne(seq, userUuid);
+
+    const now = new Date();
+    const start = startOfMonth(now);
+    const end = endOfMonth(now);
+
+    const [usageAgg, usageCount] = await Promise.all([
+      this.prisma.payment_transactions.aggregate({
+        where: {
+          user_uuid: userUuid,
+          status: 'COMPLETED',
+          payment_method_seq: seq,
+          created_at: { gte: start, lte: end },
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.payment_transactions.count({
+        where: {
+          user_uuid: userUuid,
+          status: 'COMPLETED',
+          payment_method_seq: seq,
+          created_at: { gte: start, lte: end },
+        },
+      }),
+    ]);
+
+    const thisMonthTotalAmount = this.toNumber(usageAgg._sum.amount ?? 0);
+
+    // 한도 대체 지표(예: 최근 6개월 평균 사용액 기반) - 확장 포인트
+    // - Popbill에서 한도 조회가 불가한 경우, 사용자에게 의미 있는 대체 값을 제공할 수 있습니다.
+    const sixMonthsStart = startOfMonth(subMonths(now, 5));
+    const sixMonthsAgg = await this.prisma.payment_transactions.aggregate({
+      where: {
+        user_uuid: userUuid,
+        status: 'COMPLETED',
+        payment_method_seq: seq,
+        created_at: { gte: sixMonthsStart, lte: end },
+      },
+      _avg: { amount: true },
+    });
+    const avgAmount = this.toNumber(sixMonthsAgg._avg.amount ?? 0);
+
+    const limit = await this.popbillClient.getCardLimit(userUuid, seq);
+    const fallbackEstimatedRemaining = avgAmount > 0 ? Math.max(0, avgAmount * 3) : undefined;
+
+    const paymentMethodName = pm.alias ?? `${pm.provider_name}(${pm.last_4_nums})`;
+
+    return {
+      paymentMethodId: Number(pm.seq),
+      paymentMethodName,
+      type: pm.type,
+      providerName: pm.provider_name,
+      last4: pm.last_4_nums,
+      thisMonthUsage: {
+        totalAmount: thisMonthTotalAmount,
+        totalAmountKrw: this.formatKrw(thisMonthTotalAmount),
+        count: usageCount,
+      },
+      limit: {
+        limitAmount: limit.limitAmount,
+        estimatedRemainingAmount: limit.estimatedRemainingAmount ?? fallbackEstimatedRemaining,
+        basisMessage:
+          limit.basisMessage ||
+          (fallbackEstimatedRemaining !== undefined
+            ? 'Popbill 한도 조회가 불가하여 최근 6개월 평균 사용액 기반으로 잔여 한도를 추정했습니다.'
+            : 'Popbill 한도 조회가 불가하여 잔여 한도를 제공하지 않습니다.'),
+      },
+    };
   }
 }
 

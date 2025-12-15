@@ -17,6 +17,8 @@ import { IdentityVerificationsModule } from './identity-verifications/identity-v
 import { BillingKeysModule } from './billing-keys/billing-keys.module';
 import { TestModule } from './test/test.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ExternalModule } from './external';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { join } from 'path';
 import { validate } from './config/env.validation';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -45,6 +47,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     ScheduleModule.forRoot(),
     // Note: ServeStaticModule for serving the test files is configured above
     PrismaModule,
+    ExternalModule,
     UsersModule,
     AuthModule,
     AdminModule,
@@ -57,6 +60,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     BillingKeysModule,
     TestModule,
     DashboardModule,
+    AnalyticsModule,
   ],
   providers: [
     {

@@ -22,6 +22,8 @@ import {
 import { PaymentMethodsService } from './payment-methods.service';
 import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
+import { StartCardRegistrationRequestDto, StartCardRegistrationResponseDto } from './dto/start-card-registration.dto';
+import { PaymentMethodDetailResponseDto } from './dto/payment-method-detail-response.dto';
 import { PaymentMethodEntity } from './entities/payment-method.entity';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { 
@@ -37,6 +39,32 @@ import {
 @Controller('payment-methods')
 export class PaymentMethodsController {
   constructor(private readonly paymentMethodsService: PaymentMethodsService) {}
+
+  /**
+   * curl 예시(로컬)
+   * - Popbill 연동 카드 추가 흐름 시작(현재는 더미)
+   * curl -X POST "http://localhost:3000/api/payment-methods/cards/registration/start" \
+   *  -H "Authorization: Bearer <JWT>" \
+   *  -H "Content-Type: application/json" \
+   *  -d '{"returnUrl":"https://picsel.example.com/payment-methods/add/result"}'
+   */
+  @Post('cards/registration/start')
+  @ApiOperation({
+    summary: '새 카드 추가(연동 시작)',
+    description:
+      '사용자가 "카드 추가"를 눌렀을 때 Popbill 연동 흐름을 시작합니다. 현재는 Popbill 실제 호출 없이 FE가 붙을 수 있도록 더미 응답으로 동작합니다.',
+  })
+  @ApiBody({ type: StartCardRegistrationRequestDto })
+  @ApiResponse({ status: 201, description: '연동 시작 성공', type: StartCardRegistrationResponseDto })
+  @ApiResponse({ status: 401, description: '인증 실패', type: ErrorResponseDto })
+  async startCardRegistration(@Req() req: any, @Body() _dto: StartCardRegistrationRequestDto) {
+    const userUuid = req.user.uuid;
+    const result = await this.paymentMethodsService.startCardRegistration(userUuid);
+    return {
+      message: '카드 등록 연동이 시작되었습니다.',
+      data: result,
+    };
+  }
 
   @Post()
   @ApiOperation({ 
@@ -172,6 +200,27 @@ export class PaymentMethodsController {
     return {
       data: new PaymentMethodEntity(paymentMethod),
     };
+  }
+
+  /**
+   * curl 예시(로컬)
+   * curl -X GET "http://localhost:3000/api/payment-methods/1/details" -H "Authorization: Bearer <JWT>"
+   */
+  @Get(':id/details')
+  @ApiOperation({
+    summary: '카드 상세 정보 조회',
+    description:
+      '카드 상세 정보와 이번 달 사용 금액/횟수, 한도 정보를 조회합니다. 한도는 Popbill에서 가능하면 포함하고, 불가한 경우 대체 지표 구조로 반환합니다(현재는 더미).',
+  })
+  @ApiParam({ name: 'id', description: '결제수단 ID', example: '1' })
+  @ApiResponse({ status: 200, description: '조회 성공', type: PaymentMethodDetailResponseDto })
+  @ApiResponse({ status: 401, description: '인증 실패', type: ErrorResponseDto })
+  @ApiResponse({ status: 403, description: '접근 권한 없음', type: ErrorResponseDto })
+  @ApiResponse({ status: 404, description: '결제수단을 찾을 수 없음', type: ErrorResponseDto })
+  async getCardDetail(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+    const userUuid = req.user.uuid;
+    const detail = await this.paymentMethodsService.getCardDetail(BigInt(id), userUuid);
+    return { data: detail };
   }
 
   @Patch(':id')
