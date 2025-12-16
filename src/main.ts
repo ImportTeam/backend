@@ -32,6 +32,41 @@ function getAllowedCorsOrigins(): string[] {
   return parsed.length > 0 ? Array.from(new Set(parsed)) : defaults;
 }
 
+function isAllowedCorsOrigin(
+  origin: string,
+  allowedCorsOriginSet: Set<string>,
+  options: {
+    allowLocalhost: boolean;
+    allowPicselSubdomains: boolean;
+  },
+): boolean {
+  try {
+    const url = new URL(origin);
+    const normalizedOrigin = url.origin;
+    if (allowedCorsOriginSet.has(normalizedOrigin)) return true;
+
+    const hostname = url.hostname.toLowerCase();
+
+    if (
+      options.allowPicselSubdomains &&
+      (hostname === 'picsel.kr' || hostname.endsWith('.picsel.kr'))
+    ) {
+      return true;
+    }
+
+    if (
+      options.allowLocalhost &&
+      (hostname === 'localhost' || hostname === '127.0.0.1')
+    ) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 async function bootstrap(): Promise<void> {
   try {
     console.log('[Bootstrap] Starting NestJS application...');
@@ -82,12 +117,28 @@ async function bootstrap(): Promise<void> {
 
     const allowedCorsOrigins = getAllowedCorsOrigins();
     const allowedCorsOriginSet = new Set(allowedCorsOrigins);
+    const allowLocalhostCors = (process.env.CORS_ALLOW_LOCALHOST ?? 'false')
+      .trim()
+      .toLowerCase()
+      .startsWith('t');
+    const allowPicselSubdomainsValue =
+      process.env.CORS_ALLOW_PICSEL_SUBDOMAINS ?? 'true';
+    const allowPicselSubdomains = !allowPicselSubdomainsValue
+      .trim()
+      .toLowerCase()
+      .startsWith('f');
     app.enableCors({
       origin: isDevelopment
         ? true
         : (origin, callback) => {
             if (!origin) return callback(null, true);
-            return callback(null, allowedCorsOriginSet.has(origin));
+            return callback(
+              null,
+              isAllowedCorsOrigin(origin, allowedCorsOriginSet, {
+                allowLocalhost: allowLocalhostCors,
+                allowPicselSubdomains,
+              }),
+            );
           },
       credentials: true,
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],

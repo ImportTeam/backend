@@ -3,12 +3,31 @@ import { Strategy } from 'passport-naver';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+function normalizeOAuthCallbackUrl(callbackUrl: string, provider: string): string {
+  try {
+    const url = new URL(callbackUrl);
+    const expectedPath = `/api/auth/${provider}/callback`;
+
+    if (url.pathname === `/auth/${provider}/callback`) {
+      url.pathname = expectedPath;
+      return url.toString();
+    }
+
+    return callbackUrl;
+  } catch {
+    return callbackUrl;
+  }
+}
+
 @Injectable()
 export class NaverStrategy extends PassportStrategy(Strategy, 'naver') {
   constructor(private readonly configService: ConfigService) {
     const prodCallbackURL = configService.get<string>('NAVER_REDIRECT_PROD_URI');
     const devCallbackURL = configService.get<string>('NAVER_REDIRECT_DEV_URI') || 'http://localhost:3000/api/auth/naver/callback';
-    const callbackURL = prodCallbackURL || devCallbackURL;
+    const callbackURL = normalizeOAuthCallbackUrl(
+      prodCallbackURL || devCallbackURL,
+      'naver',
+    );
 
     console.log(`[NaverStrategy] Callback URL: ${callbackURL}`);
 
