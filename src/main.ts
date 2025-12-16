@@ -46,8 +46,13 @@ async function bootstrap(): Promise<void> {
 
     console.log('[Bootstrap] AppModule created');
 
-    const logger = new CustomLoggerService();
+    const logger: CustomLoggerService = new CustomLoggerService();
     app.useLogger(logger);
+
+    const winstonLogLevel = process.env.LOG_LEVEL || 'info';
+    const shouldLogIncomingRequests = ['debug', 'verbose', 'silly'].includes(
+      winstonLogLevel,
+    );
     app.use((req: Request, res: Response, next: NextFunction) => {
       if (req.url.startsWith('/swagger')) {
         res.setHeader(
@@ -61,7 +66,7 @@ async function bootstrap(): Promise<void> {
     });
 
     app.use((req: Request, _res: Response, next: NextFunction) => {
-      if (typeof logger.debug === 'function') {
+      if (shouldLogIncomingRequests) {
         logger.debug(
           `[Incoming Request] ${req.method} originalUrl=${req.originalUrl} url=${req.url}`,
         );
@@ -76,12 +81,13 @@ async function bootstrap(): Promise<void> {
     );
 
     const allowedCorsOrigins = getAllowedCorsOrigins();
+    const allowedCorsOriginSet = new Set(allowedCorsOrigins);
     app.enableCors({
       origin: isDevelopment
         ? true
         : (origin, callback) => {
             if (!origin) return callback(null, true);
-            return callback(null, allowedCorsOrigins.includes(origin));
+            return callback(null, allowedCorsOriginSet.has(origin));
           },
       credentials: true,
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
@@ -128,7 +134,9 @@ async function bootstrap(): Promise<void> {
         '개발/운영 편의를 위한 관리자·디버그용 API (일부 비공개)',
       )
       .build();
-    const doc = SwaggerModule.createDocument(app, config);
+    const doc = SwaggerModule.createDocument(app, config, {
+      deepScanRoutes: true,
+    });
     SwaggerModule.setup('swagger', app, doc);
 
     const port = process.env.PORT || 3000;

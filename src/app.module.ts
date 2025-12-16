@@ -22,6 +22,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { join } from 'path';
 import { validate } from './config/env.validation';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -59,7 +61,9 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     DashboardModule,
     AnalyticsModule,
   ],
+  controllers: [AppController],
   providers: [
+    AppService,
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
