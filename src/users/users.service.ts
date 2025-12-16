@@ -32,7 +32,6 @@ export class UsersService {
     return this.prisma.users.findUnique({ where: { seq } });
   }
 
-  // 소셜 로그인 사용자 생성
   async createSocialUser(data: {
     email: string;
     name: string;
@@ -46,12 +45,11 @@ export class UsersService {
         name: data.name,
         social_provider: data.provider.toUpperCase(),
         social_id: data.providerId,
-        password_hash: null, // 소셜 로그인 사용자는 비밀번호가 없음
+        password_hash: null,
       },
     });
   }
 
-  // 링크된 소셜 계정 정보 업데이트 (email로 찾은 기존 사용자에 소셜 정보 추가)
   async linkSocialAccountByEmail(email: string, provider: string, providerId: string) {
     const user = await this.findByEmail(email);
     if (!user) return null;
@@ -64,7 +62,6 @@ export class UsersService {
     });
   }
 
-  // 세션(토큰) 생성
   async createSession(data: {
     user_seq: bigint | number;
     access_token: string;
@@ -83,7 +80,6 @@ export class UsersService {
     });
   }
 
-  // 비밀번호 업데이트 (이메일로 찾음)
   async updatePassword(email: string, newPassword: string) {
     const user = await this.findByEmail(email);
     if (!user) throw new NotFoundException('해당 이메일의 사용자를 찾을 수 없습니다.');
@@ -91,15 +87,12 @@ export class UsersService {
     return this.prisma.users.update({ where: { email }, data: { password_hash } });
   }
 
-  // 소셜 연동 해제: user_seq로 조회하여 provider 정보 제거
   async unlinkSocialProvider(userSeq: bigint | number, provider: string) {
     const seq = typeof userSeq === 'bigint' ? userSeq : BigInt(userSeq);
     const user = await this.findBySeq(seq);
     if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.');
 
-    // 소셜 제공자 일치 여부 확인(대소문자 무시)
     if ((user.social_provider || '').toLowerCase() !== (provider || '').toLowerCase()) {
-      // 이미 다른 provider가 연결되어 있거나 연결 없음
       return null;
     }
 
@@ -119,7 +112,6 @@ export class UsersService {
     return this.prisma.user_sessions.deleteMany({ where: { user_seq: seq } });
   }
 
-  // 공통 사용자 삭제 (seq 또는 uuid 모두 지원)
   async deleteByUserId(userId: string) {
     const isUuid = userId.includes('-');
     let user: any = null;

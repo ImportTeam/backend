@@ -1,4 +1,3 @@
-// Type definitions for passport libraries without official types
 declare module 'passport-google-oauth20' {
   import { Strategy as PassportStrategy } from 'passport-strategy';
   

@@ -2,7 +2,6 @@ import { plainToInstance } from 'class-transformer';
 import { IsNotEmpty, IsString, validateSync, IsOptional } from 'class-validator';
 
 class EnvironmentVariables {
-  // Required
   @IsNotEmpty()
   @IsString()
   DATABASE_URL: string;
@@ -15,7 +14,6 @@ class EnvironmentVariables {
   @IsString()
   ENCRYPTION_KEY: string;
 
-  // OAuth - Google
   @IsNotEmpty()
   @IsString()
   GOOGLE_CLIENT_ID: string;
@@ -28,7 +26,6 @@ class EnvironmentVariables {
   @IsString()
   GOOGLE_REDIRECT_DEV_URI: string;
 
-  // OAuth - Kakao
   @IsNotEmpty()
   @IsString()
   KAKAO_CLIENT_ID: string;
@@ -41,7 +38,6 @@ class EnvironmentVariables {
   @IsString()
   KAKAO_REDIRECT_DEV_URI: string;
 
-  // OAuth - Naver
   @IsNotEmpty()
   @IsString()
   NAVER_CLIENT_ID: string;
@@ -54,7 +50,6 @@ class EnvironmentVariables {
   @IsString()
   NAVER_REDIRECT_DEV_URI: string;
 
-  // Optional (Production)
   GOOGLE_REDIRECT_PROD_URI?: string;
   KAKAO_REDIRECT_PROD_URI?: string;
   NAVER_REDIRECT_PROD_URI?: string;
@@ -70,17 +65,14 @@ class EnvironmentVariables {
   @IsString()
   PORTONE_CHANNEL_KEY: string;
   PORTONE_MID_KEY: string;
-  // Iamport/PortOne JS merchant id used by IMP.init() (imp_...)
   @IsString()
   @IsOptional()
   PORTONE_IMP_MERCHANT_ID?: string;
 
-  // PG Provider (e.g., inicis_unified, danal)
   @IsString()
   @IsOptional()
   PORTONE_PG_PROVIDER?: string;
 
-  // Certified (KG 이니시스 등) - iamport token access
   @IsNotEmpty()
   @IsString()
   PORTONE_CERTIFIED_API_KEY: string;
@@ -89,7 +81,6 @@ class EnvironmentVariables {
   @IsString()
   PORTONE_CERTIFIED_API_SECRET: string;
 
-  // 채널(merchant/channel) key optional but often provided for certified flows
   @IsNotEmpty()
   @IsString()
   PORTONE_CERTIFIED_CHANEL_KEY: string;
@@ -98,8 +89,6 @@ class EnvironmentVariables {
   @IsString()
   NODE_ENV: string;
 }
-
-
 
 export function validate(config: Record<string, any>) {
   const validatedConfig = plainToInstance(EnvironmentVariables, config, {

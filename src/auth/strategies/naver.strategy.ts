@@ -1,7 +1,3 @@
-/**
- * Naver 전략 passport 로 구현 
- */
-
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-naver';
 import { Injectable } from '@nestjs/common';
@@ -10,31 +6,24 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class NaverStrategy extends PassportStrategy(Strategy, 'naver') {
   constructor(private readonly configService: ConfigService) {
-    // 프로덕션 URL이 설정되어 있으면 사용, 없으면 개발 URL 사용 (Fallback)
     const prodCallbackURL = configService.get<string>('NAVER_REDIRECT_PROD_URI');
     const devCallbackURL = configService.get<string>('NAVER_REDIRECT_DEV_URI') || 'http://localhost:3000/api/auth/naver/callback';
     const callbackURL = prodCallbackURL || devCallbackURL;
 
     console.log(`[NaverStrategy] Callback URL: ${callbackURL}`);
 
-    // 네이버 OAuth 설정
-    // passport-naver는 내부적으로 네이버 엔드포인트를 사용하므로 기본 설정만 필요
     super({
       clientID: configService.get<string>('NAVER_CLIENT_ID'),
       clientSecret: configService.get<string>('NAVER_CLIENT_SECRET'),
       callbackURL: callbackURL,
-      // 회원이름, 연락처 이메일 주소 스코프
-      // 네이버는 profile 스코프로 이름을 받아옴
       scope: ['profile', 'email'],
     });
   }
 
   async validate(accessToken: string, refreshToken: string, profile: any, done: any): Promise<any> {
     try {
-      // Naver profile 구조: 네이버는 response 객체로 데이터를 반환
       const naverResponse = profile._json?.response || profile._json;
-      
-      // 실제 이메일이 제공되지 않으면 에러 처리
+
       const email = naverResponse?.email;
       if (!email) {
         console.error('네이버 이메일 정보를 받아올 수 없습니다. 네이버 개발자 센터에서 이메일 동의 항목을 확인하세요.');
@@ -47,9 +36,9 @@ export class NaverStrategy extends PassportStrategy(Strategy, 'naver') {
         name: naverResponse?.name || naverResponse?.nickname || profile.displayName || profile.username || 'Naver User',
         picture: naverResponse?.profile_image || naverResponse?.profile_image_url,
         provider: 'naver',
-        providerId: String(naverResponse?.id || profile.id), // 네이버 ID는 response.id에 있음
+        providerId: String(naverResponse?.id || profile.id),
       };
-      
+
       done(null, user);
     } catch (error) {
       console.error('Naver validate error:', error);

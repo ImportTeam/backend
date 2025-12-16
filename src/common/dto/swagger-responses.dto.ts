@@ -1,9 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-// ============================================
-// Auth 응답 DTO
-// ============================================
-
 export class AuthUserDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: '사용자 UUID' })
   uuid: string;
@@ -80,10 +76,6 @@ export class RegisterResponseDto {
   data: AuthUserDto;
 }
 
-// ============================================
-// Payment Methods 응답 DTO
-// ============================================
-
 export class PaymentMethodResponseDto {
   @ApiProperty({ example: 1, description: '결제 수단 시퀀스' })
   seq: number;
@@ -137,10 +129,6 @@ export class PaymentMethodsListResponseDto {
   })
   data: PaymentMethodResponseDto[];
 }
-
-// ============================================
-// Benefits 응답 DTO
-// ============================================
 
 export class BenefitItemDto {
   @ApiProperty({ example: 'PERCENT', enum: ['PERCENT', 'FLAT'], description: '할인 유형' })
@@ -209,10 +197,6 @@ export class BenefitsCompareResponseDto {
   data: CardBenefitDto[];
 }
 
-// ============================================
-// Payments 응답 DTO
-// ============================================
-
 export class PaymentTransactionDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440002' })
   id: string;
@@ -260,10 +244,6 @@ export class PaymentRecordResponseDto {
   data: PaymentTransactionDto;
 }
 
-// ============================================
-// Identity Verification 응답 DTO
-// ============================================
-
 export class IdentityVerificationResponseDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440003' })
   id: string;
@@ -280,10 +260,6 @@ export class IdentityVerificationResponseDto {
   @ApiProperty({ example: '2025-11-12T13:59:44.000Z' })
   requestedAt: string;
 }
-
-// ============================================
-// Billing Keys 응답 DTO
-// ============================================
 
 export class BillingKeyResponseDto {
   @ApiProperty({ example: 1 })
@@ -315,10 +291,6 @@ export class BillingKeysListResponseDto {
   })
   data: BillingKeyResponseDto[];
 }
-
-// ============================================
-// Error 응답 DTO
-// ============================================
 
 export class ErrorResponseDto {
   @ApiProperty({ example: 400, description: 'HTTP 상태 코드' })

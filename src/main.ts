@@ -1,78 +1,121 @@
-/* eslint-disable unicicon/prefer-top-level-await */
 import 'reflect-metadata';
-import './common/bigint-serializer'; // BigInt to JSON
+import './common/bigint-serializer';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { CustomLoggerService } from './common/logger/logger.service';
-import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import type { NextFunction, Request, Response } from 'express';
 
-async function bootstrap() {
+function normalizeCorsOrigin(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  try {
+    return new URL(trimmed).origin;
+  } catch {
+    return null;
+  }
+}
+
+function getAllowedCorsOrigins(): string[] {
+  const raw = process.env.CORS_ORIGINS ?? process.env.FRONTEND_URL;
+  const defaults = ['https://picsel.kr', 'https://www.picsel.kr'];
+
+  if (!raw) return defaults;
+
+  const parsed = raw
+    .split(',')
+    .map((item) => normalizeCorsOrigin(item))
+    .filter((item): item is string => Boolean(item));
+
+  return parsed.length > 0 ? Array.from(new Set(parsed)) : defaults;
+}
+
+async function bootstrap(): Promise<void> {
   try {
     console.log('[Bootstrap] Starting NestJS application...');
-    
-    // Enable Nest's built-in logger for development to get more detailed debug output.
+
     const isDevelopment = process.env.NODE_ENV === 'development';
 
     const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-      logger: isDevelopment ? ['error', 'warn', 'log', 'debug', 'verbose'] : ['error', 'warn', 'log'],
+      logger: isDevelopment
+        ? ['error', 'warn', 'log', 'debug', 'verbose']
+        : ['error', 'warn', 'log'],
     });
 
     console.log('[Bootstrap] AppModule created');
 
-    // 커스텀 로거 설정
     const logger = new CustomLoggerService();
     app.useLogger(logger);
-    // Swagger 캐시 완전 차단 (Cloudflare / 브라우저 캐시 방지)
-    app.use((req: any, res: any, next: any) => {
+    app.use((req: Request, res: Response, next: NextFunction) => {
       if (req.url.startsWith('/swagger')) {
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader(
+          'Cache-Control',
+          'no-store, no-cache, must-revalidate, proxy-revalidate',
+        );
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
       }
       next();
     });
 
-    // 디버그: 모든 들어오는 요청의 원본 URL을 로깅합니다.
-    // OAuth 리다이렉트가 어떤 경로로 들어오는지 확인하기 위해 추가함.
-    app.use((req: any, _res: any, next: any) => {
-      logger.debug && logger.debug(`[Incoming Request] ${req.method} originalUrl=${req.originalUrl} url=${req.url}`);
+    app.use((req: Request, _res: Response, next: NextFunction) => {
+      if (typeof logger.debug === 'function') {
+        logger.debug(
+          `[Incoming Request] ${req.method} originalUrl=${req.originalUrl} url=${req.url}`,
+        );
+      }
       next();
     });
 
     console.log('[Bootstrap] Logger initialized');
 
-    // CORS 설정 (NODE_ENV에 따라 다르게).
-    console.log(`[Bootstrap] NODE_ENV: ${process.env.NODE_ENV}, isDevelopment: ${isDevelopment}`);
-    
+    console.log(
+      `[Bootstrap] NODE_ENV: ${process.env.NODE_ENV}, isDevelopment: ${isDevelopment}`,
+    );
+
+    const allowedCorsOrigins = getAllowedCorsOrigins();
     app.enableCors({
       origin: isDevelopment
-        ? true // 개발 환경: 모든 origin 허용
-        : [
-            process.env.FRONTEND_URL || 'https://picsel.example.com', // 프로덕션: 특정 도메인만
-          ],
+        ? true
+        : (origin, callback) => {
+            if (!origin) return callback(null, true);
+            return callback(null, allowedCorsOrigins.includes(origin));
+          },
       credentials: true,
+      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Accept',
+        'Origin',
+      ],
     });
-    // API prefix를 /api 로 통일
     app.setGlobalPrefix('api');
 
     console.log('[Bootstrap] Applying Global Pipes...');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
 
     console.log('[Bootstrap] Setting up Swagger...');
     const config = new DocumentBuilder()
       .setTitle('PicSel API')
-      .setDescription('PicSel 결제 추천 백엔드 API (NestJS + Prisma)\n\n인증: Bearer 토큰을 Authorization 헤더에 포함해 사용합니다.\n예: `Authorization: Bearer <JWT>`')
+      .setDescription(
+        'PicSel 결제 추천 백엔드 API (NestJS + Prisma)\n\n인증: Bearer 토큰을 Authorization 헤더에 포함해 사용합니다.\n예: `Authorization: Bearer <JWT>`',
+      )
       .setVersion('1.0.0')
-      .addServer("https://api.picsel.kr") 
+      .addServer('https://api.picsel.kr')
       .addBearerAuth()
-      // 도메인 기반 태그 정의 (한글 태그명, 컨트롤러 @ApiTags와 일치)
       .addTag('시스템', '기본 헬스체크 및 루트 엔드포인트')
       .addTag('인증', '이메일/비밀번호 로그인, 토큰 재발급 및 로그아웃')
       .addTag('사용자 관리', '사용자 탈퇴 등 계정 라이프사이클 관리')
-      .addTag('본인 인증', 'PASS/Certified 본인인증 요청/검증/상태/이력 조회 전반')
+      .addTag(
+        '본인 인증',
+        'PASS/Certified 본인인증 요청/검증/상태/이력 조회 전반',
+      )
       .addTag('결제수단', '결제수단 등록/조회/수정/삭제 및 주 결제수단 설정')
       .addTag('빌링키', '정기 결제를 위한 빌링키 발급/조회/삭제/기본 설정')
       .addTag('결제 내역', '결제 내역 기록 및 적용 혜택/통계 정보 제공')
@@ -80,7 +123,10 @@ async function bootstrap() {
       .addTag('대시보드', '절약 금액, Top 가맹점/결제수단 등 요약 통계 조회')
       .addTag('소비분석', '카테고리/월간/상세내역 기반 소비 분석 리포트 API')
       .addTag('테스트', '내부 테스트 및 실험용 API')
-      .addTag('디버그', '개발/운영 편의를 위한 관리자·디버그용 API (일부 비공개)')
+      .addTag(
+        '디버그',
+        '개발/운영 편의를 위한 관리자·디버그용 API (일부 비공개)',
+      )
       .build();
     const doc = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('swagger', app, doc);
@@ -88,7 +134,6 @@ async function bootstrap() {
     const port = process.env.PORT || 3000;
     console.log(`[Bootstrap] Starting server on port ${port}...`);
 
-    // 모든 호스트에서 접근 가능
     await app.listen(port, '0.0.0.0');
     console.log(`✅ Application is running on port ${port}`);
   } catch (error) {

@@ -25,17 +25,15 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 @Module({
   imports: [
-    // Serve only the test static files under /api/test
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
       serveRoot: '/api/test',
       exclude: ['/api*'],
     }),
-    ConfigModule.forRoot({ 
-      isGlobal: true, 
-      validate 
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate,
     }),
-    // Keep simple global throttling; cast to any to avoid typing mismatch with custom named throttler config
     ThrottlerModule.forRoot({
       throttlers: [
         {
@@ -45,7 +43,6 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
       ],
     }),
     ScheduleModule.forRoot(),
-    // Note: ServeStaticModule for serving the test files is configured above
     PrismaModule,
     ExternalModule,
     UsersModule,
