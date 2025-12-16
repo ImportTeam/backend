@@ -19,9 +19,13 @@ export class CrawlerService {
   private getSources(): CrawlerSource[] {
     const raw = process.env.CRAWLER_SOURCES; // JSON 배열 문자열
     if (raw) {
-      const parsed = JSON.parse(raw) as unknown as CrawlerSource[];
-      if (Array.isArray(parsed)) return parsed;
-      this.logger.warn('CRAWLER_SOURCES 형식이 올바르지 않아 기본값을 사용합니다.');
+      try {
+        const parsed = JSON.parse(raw) as unknown as CrawlerSource[];
+        if (Array.isArray(parsed)) return parsed;
+        this.logger.warn('CRAWLER_SOURCES 형식이 올바르지 않아 기본값을 사용합니다.');
+      } catch {
+        this.logger.warn('CRAWLER_SOURCES JSON 파싱에 실패해 기본값을 사용합니다.');
+      }
     }
     return DEFAULT_SOURCES;
   }
@@ -38,16 +42,15 @@ export class CrawlerService {
     // 병렬 처리로 크롤링 속도 향상
     const crawlPromises = sources.map(async (s) => {
       try {
-        const html = await axios
-          .get(s.url, {
-            timeout: 10000, // 15초 -> 10초로 감소
-            headers: {
-              'User-Agent': 'PicSelBot/1.0 (+https://example.com/bot)'
-            },
-            maxRedirects: 5,
-            validateStatus: (status) => status >= 200 && status < 400,
-          })
-          .then((r) => String(r.data));
+        const response = await axios.get(s.url, {
+          timeout: 10000, // 15초 -> 10초로 감소
+          headers: {
+            'User-Agent': 'PicSelBot/1.0 (+https://example.com/bot)',
+          },
+          maxRedirects: 5,
+          validateStatus: (status) => status >= 200 && status < 400,
+        });
+        const html = String(response.data);
 
         const title = this.extractTitle(html) ?? '프로모션';
         const hash = this.hash(`${s.provider}|${s.url}|${title}`);

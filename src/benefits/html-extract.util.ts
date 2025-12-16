@@ -22,27 +22,56 @@ function strip(html: string): string {
 function pad(n: number): string { return n < 10 ? `0${n}` : `${n}`; }
 function toYmd(y: number, m: number, d: number): string { return `${y}-${pad(m)}-${pad(d)}`; }
 
+const DATE_RANGE_RE = /(20\d{2})[-.](\d{1,2})[-.](\d{1,2})\s*[~–-]\s*(?:(20\d{2})[-.])?(\d{1,2})[-.](\d{1,2})/i;
+const KOREAN_DATE_START_RE = /(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})/i;
+const KOREAN_DATE_END_FULL_RE = /(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})/i;
+const KOREAN_DATE_END_PARTIAL_RE = /(\d{1,2})\s*월\s*(\d{1,2})/i;
+const KOREAN_RANGE_SEP_RE = /\s*[~–-]\s*/;
+const DATE_UNTIL_RE = /(?:~|까지)\s*(20\d{2})[-.](\d{1,2})[-.](\d{1,2})\s*까지?/i;
+
+const PERCENT_RE = /(\d{1,2})\s?%/;
+const FLAT_RE = /(\d[\d,]{2,})\s?원/;
+const INSTALLMENT_RE = /(무이자|할부).{0,10}?(\d{1,2})\s?개월/;
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+const PROVIDER_CONTEXT_REGEX_CACHE = new Map<string, RegExp>();
+function getProviderContextRegex(providerKeyword: string): RegExp {
+  const cached = PROVIDER_CONTEXT_REGEX_CACHE.get(providerKeyword);
+  if (cached) return cached;
+
+  const escaped = escapeRegExp(providerKeyword);
+  const regex = new RegExp(
+    `${escaped}.{0,80}?(?:(\\d{1,2})\\s?%|(\\d[\\d,]{2,})\\s?원|무이자|할부|개월)`,
+    'gi',
+  );
+  PROVIDER_CONTEXT_REGEX_CACHE.set(providerKeyword, regex);
+  return regex;
+}
+
 function extractDateRange(windowText: string): { start?: string; end?: string } {
   // 1) 2025.10.14~2025.10.31 or 2025-10-14 ~ 2025-10-31
-  let m = /(20\d{2})[-.](\d{1,2})[-.](\d{1,2})\s*[~–-]\s*(?:(20\d{2})[-.])?(\d{1,2})[-.](\d{1,2})/i.exec(windowText);
+  let m = DATE_RANGE_RE.exec(windowText);
   if (m) {
     const y1 = Number(m[1]); const mo1 = Number(m[2]); const d1 = Number(m[3]);
     const y2 = m[4] ? Number(m[4]) : y1; const mo2 = Number(m[5]); const d2 = Number(m[6]);
     return { start: toYmd(y1, mo1, d1), end: toYmd(y2, mo2, d2) };
   }
   // 2) 한국어 날짜 범위: "YYYY년 M월 D일 ~ YYYY년 M월 D일" 또는 "YYYY년 M월 D일 ~ M월 D일"
-  const startK = /(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})/i.exec(windowText);
+  const startK = KOREAN_DATE_START_RE.exec(windowText);
   if (startK) {
     const y1 = Number(startK[1]);
     const mo1 = Number(startK[2]);
     const d1 = Number(startK[3]);
 
     const afterStart = windowText.slice(startK.index + startK[0].length);
-    const sep = /\s*[~–-]\s*/.exec(afterStart);
+    const sep = KOREAN_RANGE_SEP_RE.exec(afterStart);
     if (sep) {
       const tail = afterStart.slice(sep.index + sep[0].length);
       // 2-a) 끝 범위가 연도 포함
-      const endFull = /(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})/i.exec(tail);
+      const endFull = KOREAN_DATE_END_FULL_RE.exec(tail);
       if (endFull && endFull.index === 0) {
         const y2 = Number(endFull[1]);
         const mo2 = Number(endFull[2]);
@@ -50,7 +79,7 @@ function extractDateRange(windowText: string): { start?: string; end?: string } 
         return { start: toYmd(y1, mo1, d1), end: toYmd(y2, mo2, d2) };
       }
       // 2-b) 끝 범위가 월/일만 있음 → 시작 연도 사용
-      const endPartial = /(\d{1,2})\s*월\s*(\d{1,2})/i.exec(tail);
+      const endPartial = KOREAN_DATE_END_PARTIAL_RE.exec(tail);
       if (endPartial && endPartial.index === 0) {
         const mo2 = Number(endPartial[1]);
         const d2 = Number(endPartial[2]);
@@ -59,7 +88,7 @@ function extractDateRange(windowText: string): { start?: string; end?: string } 
     }
   }
   // 3) ~ 2025.10.31 까지
-  m = /(?:~|까지)\s*(20\d{2})[-.](\d{1,2})[-.](\d{1,2})\s*까지?/i.exec(windowText);
+  m = DATE_UNTIL_RE.exec(windowText);
   if (m) {
     const y2 = Number(m[1]); const mo2 = Number(m[2]); const d2 = Number(m[3]);
     return { end: toYmd(y2, mo2, d2) };
@@ -80,16 +109,18 @@ export function extractOffersFromHtml(htmlOrText: string): ExtractedOffer[] {
 
   for (const p of providers) {
     // 컨텍스트 범위(양옆 80자 내)에서 % 또는 숫자+원 찾기, 혹은 무이자/할부 문구 탐지
-  const regex = new RegExp(`${p}.{0,80}?(?:(\\d{1,2})\\s?%|(\\d[\\d,]{2,})\\s?원|무이자|할부|개월)`, 'gi');
+    const regex = getProviderContextRegex(p);
+    // 캐시된 /g 정규식은 호출 간 lastIndex가 남을 수 있어 매번 초기화
+    regex.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = regex.exec(text))) {
       const windowStart = Math.max(0, m.index - 80);
       const windowEnd = Math.min(text.length, m.index + 160);
       const win = text.slice(windowStart, windowEnd);
 
-      const percentMatch = /(\d{1,2})\s?%/.exec(win);
-  const flatMatch = /(\d[\d,]{2,})\s?원/.exec(win);
-      const installmentMatch = /(무이자|할부).{0,10}?(\d{1,2})\s?개월/.exec(win);
+      const percentMatch = PERCENT_RE.exec(win);
+      const flatMatch = FLAT_RE.exec(win);
+      const installmentMatch = INSTALLMENT_RE.exec(win);
 
       const { start, end } = extractDateRange(win);
       const provider_name = normalizeProviderName(p);
@@ -107,7 +138,7 @@ export function extractOffersFromHtml(htmlOrText: string): ExtractedOffer[] {
           benefit_kind: 'DISCOUNT',
         });
       } else if (flatMatch) {
-  const flat = Number(flatMatch[1].replaceAll(',', ''));
+        const flat = Number(flatMatch[1].replaceAll(',', ''));
         candidates.push({
           provider_name,
           discount_type: 'FLAT',

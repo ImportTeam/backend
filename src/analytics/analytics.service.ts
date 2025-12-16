@@ -97,26 +97,29 @@ export class AnalyticsService {
     // 성능 확장 포인트:
     // - 현재는 6회 aggregate를 실행합니다.
     // - 실무에서는 월 단위 집계 테이블/배치/캐시(Redis 등)로 최적화하는 것을 권장합니다.
-    const data: Array<{ month: string; totalSpent: number }> = [];
-
-    for (let i = 5; i >= 0; i -= 1) {
+    const monthRanges = Array.from({ length: 6 }, (_, idx) => 5 - idx).map((i) => {
       const monthStart = startOfMonth(subMonths(now, i));
       const monthEnd = endOfMonth(subMonths(now, i));
+      return { monthStart, monthEnd, label: format(monthStart, 'yyyy-MM') };
+    });
 
-      const agg = await this.prisma.payment_transactions.aggregate({
-        where: {
-          user_uuid: userUuid,
-          status: 'COMPLETED',
-          created_at: { gte: monthStart, lte: monthEnd },
-        },
-        _sum: { amount: true },
-      });
+    const aggs = await Promise.all(
+      monthRanges.map((r) =>
+        this.prisma.payment_transactions.aggregate({
+          where: {
+            user_uuid: userUuid,
+            status: 'COMPLETED',
+            created_at: { gte: r.monthStart, lte: r.monthEnd },
+          },
+          _sum: { amount: true },
+        }),
+      ),
+    );
 
-      data.push({
-        month: format(monthStart, 'yyyy-MM'),
-        totalSpent: this.toNumber(agg._sum.amount ?? 0),
-      });
-    }
+    const data = aggs.map((agg, idx) => ({
+      month: monthRanges[idx].label,
+      totalSpent: this.toNumber(agg._sum.amount ?? 0),
+    }));
 
     return { data };
   }
@@ -160,6 +163,7 @@ export class AnalyticsService {
 
     // 카테고리 필터는 현재 DB에 컬럼이 없어 서버에서 분류 후 필터링
     const categories = query.categories?.map((c) => c.trim()).filter(Boolean);
+    const categorySet = categories && categories.length > 0 ? new Set(categories) : null;
 
     // 카테고리 필터가 있을 경우 정확한 totalCount를 위해 전체를 조회 후 필터링해야 하지만,
     // 현재 단계에서는 "최소 구현"으로 다음 전략을 사용합니다:
@@ -186,8 +190,8 @@ export class AnalyticsService {
       this.prisma.payment_transactions.count({ where }),
     ]);
 
-    const filtered = categories && categories.length > 0
-      ? rawItems.filter((tx) => categories.includes(this.classifyCategory(tx.merchant_name)))
+    const filtered = categorySet
+      ? rawItems.filter((tx) => categorySet.has(this.classifyCategory(tx.merchant_name)))
       : rawItems;
 
     const methodSeqs = [...new Set(filtered.map((i) => i.payment_method_seq).filter(Boolean))] as bigint[];
@@ -198,9 +202,9 @@ export class AnalyticsService {
         })
       : [];
 
-    const methodMap = new Map<string, string>();
+    const methodMap = new Map<bigint, string>();
     for (const m of methods) {
-      methodMap.set(m.seq.toString(), m.alias ?? `${m.provider_name}(${m.last_4_nums})`);
+      methodMap.set(m.seq, m.alias ?? `${m.provider_name}(${m.last_4_nums})`);
     }
 
     const items = filtered.map((tx) => {
@@ -219,7 +223,7 @@ export class AnalyticsService {
         paidAmount,
         discountOrRewardAmount,
         paymentMethodId: pmId,
-        paymentMethodName: tx.payment_method_seq ? methodMap.get(tx.payment_method_seq.toString()) || null : null,
+        paymentMethodName: tx.payment_method_seq ? methodMap.get(tx.payment_method_seq) || null : null,
       };
     });
 

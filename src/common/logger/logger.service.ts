@@ -10,9 +10,7 @@ export class CustomLoggerService implements LoggerService {
   constructor() {
     // 로그 디렉토리 생성
     const logsDir = path.join(process.cwd(), 'logs');
-    if (!fs.existsSync(logsDir)) {
-      fs.mkdirSync(logsDir);
-    }
+    fs.mkdirSync(logsDir, { recursive: true });
 
     const isProduction = process.env.NODE_ENV === 'production';
     const transports: winston.transport[] = [];
@@ -60,6 +58,19 @@ export class CustomLoggerService implements LoggerService {
       defaultMeta: { service: 'picsel-backend' },
       transports,
     });
+  }
+
+  isLevelEnabled(level: string): boolean {
+    const anyLogger = this.logger as unknown as {
+      isLevelEnabled?: (level: string) => boolean;
+    };
+    return typeof anyLogger.isLevelEnabled === 'function'
+      ? anyLogger.isLevelEnabled(level)
+      : true;
+  }
+
+  isDebugEnabled(): boolean {
+    return this.isLevelEnabled('debug');
   }
 
   log(message: string, context?: string) {

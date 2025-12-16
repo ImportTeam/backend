@@ -103,8 +103,10 @@ export class DashboardService {
   }
 
   async getSavingsThisMonth(userUuid: string) {
-    const { totalAmount, totalBenefit } = await this.getThisMonthSums(userUuid);
-    const lastYear = await this.getLastYearSameMonthSums(userUuid);
+    const [{ totalAmount, totalBenefit }, lastYear] = await Promise.all([
+      this.getThisMonthSums(userUuid),
+      this.getLastYearSameMonthSums(userUuid),
+    ]);
 
     // 절약 금액은 이번 달에 실제로 적용된 benefit의 합으로 간주
     const savingsAmount = totalBenefit;
@@ -209,7 +211,10 @@ export class DashboardService {
     const seq = g.payment_method_seq;
     if (!seq) return null;
 
-    const method = await this.prisma.payment_methods.findUnique({ where: { seq } });
+    const method = await this.prisma.payment_methods.findUnique({
+      where: { seq },
+      select: { provider_name: true, alias: true, last_4_nums: true },
+    });
     const name = method ? method.alias ?? `${method.provider_name}(${method.last_4_nums})` : 'Unknown';
 
     // “이번 달 사용 금액”은 요구사항대로 별도 계산
@@ -246,31 +251,36 @@ export class DashboardService {
     // 성능 확장 포인트:
     // - 지금은 6회 aggregate 쿼리를 실행합니다.
     // - 실무에서는 월 단위 집계 테이블/배치를 통해 O(1) 조회로 최적화하는 것을 권장합니다.
-    const items = [] as Array<{ month: string; totalSpent: number; totalBenefit: number; savingsAmount: number }>;
-    for (let i = 5; i >= 0; i -= 1) {
+    const monthRanges = Array.from({ length: 6 }, (_, idx) => 5 - idx).map((i) => {
       const monthStart = startOfMonth(subMonths(now, i));
       const monthEnd = endOfMonth(subMonths(now, i));
+      return { monthStart, monthEnd, label: format(monthStart, 'yyyy-MM') };
+    });
 
-      const agg = await this.prisma.payment_transactions.aggregate({
-        where: {
-          user_uuid: userUuid,
-          status: 'COMPLETED',
-          created_at: { gte: monthStart, lte: monthEnd },
-        },
-        _sum: { amount: true, benefit_value: true },
-      });
+    const aggs = await Promise.all(
+      monthRanges.map((r) =>
+        this.prisma.payment_transactions.aggregate({
+          where: {
+            user_uuid: userUuid,
+            status: 'COMPLETED',
+            created_at: { gte: r.monthStart, lte: r.monthEnd },
+          },
+          _sum: { amount: true, benefit_value: true },
+        }),
+      ),
+    );
 
+    const items = aggs.map((agg, idx) => {
       const totalSpent = this.toNumber(agg._sum.amount ?? 0);
       const totalBenefit = this.toNumber(agg._sum.benefit_value ?? 0);
       const { savingsAmount } = this.computeSavingsMetric(totalSpent, totalBenefit);
-
-      items.push({
-        month: format(monthStart, 'yyyy-MM'),
+      return {
+        month: monthRanges[idx].label,
         totalSpent,
         totalBenefit,
         savingsAmount,
-      });
-    }
+      };
+    });
 
     return { data: items };
   }
@@ -438,13 +448,13 @@ export class DashboardService {
           select: { seq: true, provider_name: true, alias: true, last_4_nums: true },
         })
       : [];
-    const methodMap = new Map<string, { name: string }>();
+    const methodMap = new Map<bigint, string>();
     for (const m of methods) {
-      methodMap.set(m.seq.toString(), { name: m.alias ?? `${m.provider_name}(${m.last_4_nums})` });
+      methodMap.set(m.seq, m.alias ?? `${m.provider_name}(${m.last_4_nums})`);
     }
 
     const mapped = items.map((tx) => {
-      const pmName = tx.payment_method_seq ? methodMap.get(tx.payment_method_seq.toString())?.name : undefined;
+      const pmName = tx.payment_method_seq ? methodMap.get(tx.payment_method_seq) : undefined;
       return {
         merchantName: tx.merchant_name,
         paidAt: tx.created_at.toISOString(),
