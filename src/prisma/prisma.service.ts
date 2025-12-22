@@ -18,6 +18,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   async onModuleInit() {
     this.logger.log('Connecting to database...');
 
+    const env = (process.env.NODE_ENV ?? '').trim().toLowerCase();
+    const forceFailFast = (process.env.PRISMA_FAIL_FAST ?? '')
+      .trim()
+      .toLowerCase()
+      .startsWith('t');
+    const isProd = env === 'production';
+    const shouldFailFast = isProd || forceFailFast;
+
     if (process.env.NODE_ENV === 'development') {
       // @ts-ignore - Prisma internal API
       this.$on('query', (e: any) => {
@@ -32,7 +40,16 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       this.logger.log('✅ Database connected successfully');
     } catch (error) {
       this.logger.error('❌ Failed to connect to database:', error);
-      throw error;
+
+      if (shouldFailFast) {
+        throw error;
+      }
+
+      this.logger.warn(
+        '⚠️ Continuing without database connection (non-production mode). ' +
+          'DB-dependent APIs will fail until the database is available. ' +
+          '(Set PRISMA_FAIL_FAST=true to fail hard.)',
+      );
     }
   }
 

@@ -254,6 +254,9 @@ async function bootstrap(): Promise<void> {
         'PicSel 결제 추천 백엔드 API (NestJS + Prisma)\n\n인증: Bearer 토큰을 Authorization 헤더에 포함해 사용합니다.\n예: `Authorization: Bearer <JWT>`',
       )
       .setVersion('1.0.0')
+      // 기본은 현재 오리진 기준으로 호출되게 설정 (로컬/운영 Swagger 모두 Try-it-out 동작)
+      .addServer('/')
+      // 참고용(명시적) 프로덕션 서버
       .addServer('https://api.picsel.kr')
       .addBearerAuth()
       .addTag('시스템', '기본 헬스체크 및 루트 엔드포인트')
