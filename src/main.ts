@@ -87,6 +87,15 @@ async function bootstrap(): Promise<void> {
 
     console.log('[Bootstrap] AppModule created');
 
+    // Prevent cross-origin isolation headers from blocking external resources (e.g., vercel.live scripts)
+    // in deployed environments.
+    app.use((_req: Request, res: Response, next: NextFunction) => {
+      res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+      res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      next();
+    });
+
     const logger: CustomLoggerService = new CustomLoggerService();
     app.useLogger(logger);
 
