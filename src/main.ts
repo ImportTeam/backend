@@ -10,6 +10,10 @@ import type { NextFunction, Request, Response } from 'express';
 import { spawnSync } from 'child_process';
 import { join } from 'path';
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function shouldAutoSeedOnStartup(): boolean {
   if ((process.env.AUTO_DB_SEED ?? '').trim().toLowerCase() === 'false') {
     return false;
@@ -26,25 +30,54 @@ function shouldAutoSeedOnStartup(): boolean {
   return true;
 }
 
-function runSeedOnStartupIfEnabled(): void {
+async function runSeedOnStartupIfEnabled(): Promise<void> {
   if (!shouldAutoSeedOnStartup()) return;
 
   const seedPath = join(process.cwd(), 'prisma', 'seed.ts');
   console.log(`[Bootstrap] AUTO_DB_SEED enabled. Running seed: ${seedPath}`);
 
-  // nest start:dev / ts-node 환경에서 동작하도록 ts-node/register 사용
-  const result = spawnSync(
-    process.execPath,
-    ['-r', 'ts-node/register', seedPath],
-    {
-      cwd: process.cwd(),
-      stdio: 'inherit',
-      env: { ...process.env, NODE_ENV: process.env.NODE_ENV || 'test' },
-    },
-  );
+  const requireDbSeed = (process.env.REQUIRE_DB_SEED ?? '')
+    .trim()
+    .toLowerCase()
+    .startsWith('t');
 
-  if (result.status !== 0) {
-    throw new Error(`DB seed failed on startup (exit code: ${result.status})`);
+  const maxAttempts = Number(process.env.AUTO_DB_SEED_RETRIES ?? 5);
+  const retryDelayMs = Number(process.env.AUTO_DB_SEED_RETRY_DELAY_MS ?? 1500);
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // nest start:dev / ts-node 환경에서 동작하도록 ts-node/register 사용
+    const result = spawnSync(
+      process.execPath,
+      ['-r', 'ts-node/register', seedPath],
+      {
+        cwd: process.cwd(),
+        stdio: 'inherit',
+        env: { ...process.env, NODE_ENV: process.env.NODE_ENV || 'test' },
+      },
+    );
+
+    if (result.status === 0) {
+      return;
+    }
+
+    const isLast = attempt === maxAttempts;
+    if (isLast) {
+      if (requireDbSeed) {
+        throw new Error(
+          `DB seed failed on startup (exit code: ${result.status})`,
+        );
+      }
+      console.warn(
+        `[Bootstrap] DB seed failed on startup (exit code: ${result.status}). ` +
+          `Continuing without seed. (Set REQUIRE_DB_SEED=true to fail hard)`,
+      );
+      return;
+    }
+
+    console.warn(
+      `[Bootstrap] DB seed failed (attempt ${attempt}/${maxAttempts}). Retrying in ${retryDelayMs}ms...`,
+    );
+    await sleep(retryDelayMs);
   }
 }
 
@@ -117,7 +150,7 @@ async function bootstrap(): Promise<void> {
   try {
     console.log('[Bootstrap] Starting NestJS application...');
 
-    runSeedOnStartupIfEnabled();
+    await runSeedOnStartupIfEnabled();
 
     const isDevelopment = process.env.NODE_ENV === 'development';
 
