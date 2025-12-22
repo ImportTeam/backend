@@ -1,6 +1,6 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-kakao';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 function normalizeOAuthCallbackUrl(callbackUrl: string, provider: string): string {
@@ -54,7 +54,12 @@ export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
       const email = kakaoAccount?.email;
       if (!email) {
         console.error('카카오 이메일 정보를 받아올 수 없습니다. 카카오 개발자 콘솔에서 이메일 동의 항목을 확인하세요.');
-        return done(new Error('이메일 정보가 필요합니다. 카카오 로그인 시 이메일 제공에 동의해주세요.'), null);
+        return done(
+          new BadRequestException(
+            '이메일 정보가 필요합니다. 카카오 로그인 시 이메일 제공에 동의해주세요.',
+          ),
+          null,
+        );
       }
 
       const user = {
@@ -67,7 +72,8 @@ export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
 
       done(null, user);
     } catch (error) {
-      done(error, null);
+      if (error instanceof HttpException) return done(error, null);
+      return done(new UnauthorizedException('카카오 로그인에 실패했습니다.'), null);
     }
   }
 }

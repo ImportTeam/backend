@@ -5,6 +5,18 @@ import { Request, Response } from 'express';
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
+  private toStatusName(status: number): string {
+    return (HttpStatus as any)[status] ?? 'UNKNOWN';
+  }
+
+  private normalizeErrorTypeToCode(errorType: string): string {
+    const base = (errorType || 'UNKNOWN_ERROR').replace(/Exception$/i, '');
+    return base
+      .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+      .replace(/[\s\-]+/g, '_')
+      .toUpperCase();
+  }
+
   private toErrorCode(status: number, errorType?: string, hasValidationErrors?: boolean) {
     if (hasValidationErrors) return 'VALIDATION_ERROR';
 
@@ -28,7 +40,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) return 'INTERNAL_SERVER_ERROR';
 
     // fallback
-    return (errorType || 'UNKNOWN_ERROR').toUpperCase();
+    return this.normalizeErrorTypeToCode(errorType || 'UNKNOWN_ERROR');
   }
 
   catch(exception: HttpException, host: ArgumentsHost) {
@@ -40,8 +52,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const errorResponse: any = {
       statusCode: status,
+      status: this.toStatusName(status),
       timestamp: new Date().toISOString(),
-      path: request.url,
+      path: (request as any).originalUrl ?? request.url,
       method: request.method,
     };
 

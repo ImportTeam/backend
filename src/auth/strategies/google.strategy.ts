@@ -1,6 +1,6 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 function normalizeOAuthCallbackUrl(callbackUrl: string, provider: string): string {
@@ -40,14 +40,29 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   }
 
   async validate(accessToken: string, refreshToken: string, profile: any, done: VerifyCallback): Promise<any> {
-    const { id, name, emails, photos } = profile;
-    const user = {
-      email: emails[0].value,
-      name: name.givenName || name.familyName || emails[0].value.split('@')[0],
-      picture: photos[0]?.value,
-      provider: 'google',
-      providerId: String(id),
-    };
-    done(null, user);
+    try {
+      const { id, name, emails, photos } = profile;
+      const email = emails?.[0]?.value;
+      if (!email) {
+        return done(
+          new BadRequestException(
+            '이메일 정보가 필요합니다. Google 로그인 시 이메일 제공에 동의해주세요.',
+          ),
+          undefined,
+        );
+      }
+
+      const user = {
+        email,
+        name: name?.givenName || name?.familyName || email.split('@')[0],
+        picture: photos?.[0]?.value,
+        provider: 'google',
+        providerId: String(id),
+      };
+      return done(null, user);
+    } catch (error) {
+      if (error instanceof HttpException) return done(error, undefined);
+      return done(new UnauthorizedException('구글 로그인에 실패했습니다.'), undefined);
+    }
   }
 }

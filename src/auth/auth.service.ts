@@ -41,11 +41,25 @@ export class AuthService {
   async login(loginDto: { email: string; password: string }) {
     const { email, password } = loginDto;
     const user = await this.usersService.findByEmail(email);
-    if (!user)
-      throw new UnauthorizedException('해당 이메일의 사용자를 찾을 수 없습니다.');
+    if (!user) {
+      throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
+    }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash || '');
-    if (!isPasswordValid) throw new UnauthorizedException('비밀번호가 일치하지 않습니다.');
+    // Social-only accounts may not have a password hash.
+    // Also, bcryptjs can throw if hash format is invalid/empty.
+    if (!user.password_hash) {
+      throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
+    }
+
+    let isPasswordValid = false;
+    try {
+      isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    } catch {
+      isPasswordValid = false;
+    }
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
+    }
 
     const payload = { 
       sub: user!.seq.toString(), 
@@ -252,7 +266,7 @@ export class AuthService {
     if (!session) throw new UnauthorizedException('Session not found or refresh token revoked');
 
     const user = await this.usersService.findBySeq(session.user_seq as bigint);
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new UnauthorizedException('Invalid or expired refresh token');
 
     const accessExp = process.env.JWT_EXPIRES_IN || '1h';
     const refreshExp = process.env.JWT_REFRESH_EXPIRES_IN || '7d';

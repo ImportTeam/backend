@@ -102,7 +102,7 @@ describe('AuthService', () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       await expect(authService.login(mockLoginDto)).rejects.toThrow(UnauthorizedException);
-      expect(bcrypt.compare).toHaveBeenCalledWith(mockLoginDto.password, '');
+      expect(bcrypt.compare).not.toHaveBeenCalled();
     });
   });
 
