@@ -29,6 +29,13 @@ export class RecommendedPaymentMethodItemDto {
     description: '추천 사유(요약)',
   })
   reasonSummary: string;
+
+  @ApiProperty({
+    example: '주요 쇼핑몰 결제 시 % 할인/적립',
+    description: '어떤 할인인지/어떻게 할인되는지(간략)',
+    required: false,
+  })
+  discountSummary?: string;
 }
 
 export class RecommendedPaymentMethodsTop3ResponseDto {

@@ -289,7 +289,24 @@ export class DashboardService {
       };
     });
 
-    return { data: items };
+    // Gemini 인사이트(옵션): API 키가 없거나 실패하면 ai 필드 없이 반환
+    try {
+      const summary = await this.getRecentSixMonthsSummary(userUuid);
+      const ai = await this.aiClient.getMonthlySavingsTrendInsight({
+        userUuid,
+        monthly: items.map((m) => ({
+          month: m.month,
+          totalSpent: m.totalSpent,
+          totalBenefit: m.totalBenefit,
+          savingsAmount: m.savingsAmount,
+        })),
+        byCategory: summary.byCategory,
+      });
+      return { data: items, ai };
+    } catch (e: any) {
+      this.logger.warn(`Gemini monthly savings insight skipped: ${e?.message ?? e}`);
+      return { data: items };
+    }
   }
 
   private async getRecentSixMonthsSummary(userUuid: string) {
@@ -312,6 +329,7 @@ export class DashboardService {
     });
 
     const byCategory = new Map<string, number>();
+    const byMerchant = new Map<string, number>();
     let totalSpent = 0;
     let totalBenefit = 0;
 
@@ -322,16 +340,25 @@ export class DashboardService {
       totalBenefit += benefit;
       const category = this.classifyCategory(tx.merchant_name);
       byCategory.set(category, (byCategory.get(category) || 0) + spent);
+
+      const merchant = (tx.merchant_name || '').trim();
+      if (merchant) byMerchant.set(merchant, (byMerchant.get(merchant) || 0) + spent);
     }
 
     const byCategoryArr = [...byCategory.entries()]
       .map(([category, spent]) => ({ category, spent }))
       .sort((a, b) => b.spent - a.spent);
 
+    const topMerchants = [...byMerchant.entries()]
+      .map(([merchantName, spent]) => ({ merchantName, spent }))
+      .sort((a, b) => b.spent - a.spent)
+      .slice(0, 10);
+
     return {
       totalSpent,
       totalBenefit,
       byCategory: byCategoryArr,
+      topMerchants,
     };
   }
 
@@ -392,15 +419,19 @@ export class DashboardService {
     const aiTop3 = await this.aiClient.getRecommendedPaymentMethodsTop3({
       userUuid,
       recentSixMonthsSummary: {
-        topMerchants: [],
+        topMerchants: summary.topMerchants,
         byCategory: summary.byCategory,
       },
       paymentMethods: paymentMethods.map((pm) => ({ seq: pm.seq, providerName: pm.provider_name, alias: pm.alias })),
     });
 
-    const aiScoreBySeq = new Map<string, { score: number; reasonSummary: string }>();
+    const aiScoreBySeq = new Map<string, { score: number; reasonSummary: string; discountSummary?: string }>();
     for (const item of aiTop3.items) {
-      aiScoreBySeq.set(item.paymentMethodSeq.toString(), { score: item.score, reasonSummary: item.reasonSummary });
+      aiScoreBySeq.set(item.paymentMethodSeq.toString(), {
+        score: item.score,
+        reasonSummary: item.reasonSummary,
+        discountSummary: item.discountSummary,
+      });
     }
 
     const merged = baseScores
@@ -416,6 +447,7 @@ export class DashboardService {
           score: mergedScore,
           value: mergedScore,
           reasonSummary,
+          discountSummary: ai?.discountSummary,
         };
       })
       .sort((a, b) => b.score - a.score)

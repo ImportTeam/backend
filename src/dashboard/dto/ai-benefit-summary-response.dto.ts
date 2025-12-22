@@ -12,4 +12,13 @@ export class AiBenefitSummaryResponseDto {
     description: '추천 사유(요약)',
   })
   reasonSummary: string;
+
+  @ApiProperty({
+    required: false,
+    description: '추천 카드/페이 리스트(3~5개)',
+    example: [
+      { providerName: 'KAKAOPAY', why: '생활/편의점 지출에 적립 효율이 좋아요' },
+    ],
+  })
+  items?: Array<{ providerName: string; why: string }>;
 }
