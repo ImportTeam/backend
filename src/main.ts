@@ -20,7 +20,13 @@ function normalizeCorsOrigin(value: string): string | null {
 
 function getAllowedCorsOrigins(): string[] {
   const raw = process.env.CORS_ORIGINS ?? process.env.FRONTEND_URL;
-  const defaults = ['https://picsel.kr', 'https://www.picsel.kr'];
+  const defaults = [
+    'https://picsel.kr',
+    'https://www.picsel.kr',
+    'https://picsel.kro.kr',
+    'https://13.125.151.228',
+    'http://13.125.151.228',
+  ];
 
   if (!raw) return defaults;
 

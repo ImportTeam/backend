@@ -1,9 +1,24 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { randomUUID } from 'node:crypto';
 import * as bcrypt from 'bcryptjs';
 import { UpdateCurrentUserDto } from './dto/update-current-user.dto';
+
+function isEmailUniqueConstraintError(error: unknown): boolean {
+  const anyErr = error as any;
+  if (!anyErr) return false;
+  if (anyErr.code !== 'P2002') return false;
+  const target = anyErr.meta?.target;
+  if (Array.isArray(target)) return target.includes('email');
+  if (typeof target === 'string') return target.includes('email');
+  return false;
+}
 
 @Injectable()
 export class UsersService {
@@ -46,7 +61,7 @@ export class UsersService {
   async updateCurrentUser(userSeq: bigint | number, dto: UpdateCurrentUserDto) {
     const seq = typeof userSeq === 'bigint' ? userSeq : BigInt(userSeq);
 
-    const hasUserUpdate = typeof dto.name === 'string';
+    const hasUserUpdate = typeof dto.name === 'string' || typeof dto.email === 'string';
     const settings = dto.settings;
     const hasSettingsUpdate = Boolean(settings) && Object.keys(settings as object).length > 0;
 
@@ -54,14 +69,18 @@ export class UsersService {
       return this.getCurrentUser(seq);
     }
 
-    await this.prisma.$transaction(async (tx) => {
+    try {
+      await this.prisma.$transaction(async (tx) => {
       if (hasUserUpdate) {
-        await tx.users.update({
-          where: { seq },
-          data: {
-            name: dto.name!,
-          },
-        });
+        const data: Record<string, any> = {};
+        if (typeof dto.name === 'string') data.name = dto.name;
+        if (typeof dto.email === 'string') data.email = dto.email;
+        if (Object.keys(data).length > 0) {
+          await tx.users.update({
+            where: { seq },
+            data,
+          });
+        }
       }
 
       if (hasSettingsUpdate) {
@@ -90,9 +109,32 @@ export class UsersService {
           },
         });
       }
-    });
+      });
+    } catch (error) {
+      if (isEmailUniqueConstraintError(error)) {
+        throw new ConflictException('이미 사용 중인 이메일입니다.');
+      }
+      throw error;
+    }
 
     return this.getCurrentUser(seq);
+  }
+
+  async changePassword(userSeq: bigint | number, currentPassword: string, newPassword: string) {
+    const seq = typeof userSeq === 'bigint' ? userSeq : BigInt(userSeq);
+    const user = await this.prisma.users.findUnique({ where: { seq } });
+    if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.');
+
+    if (!user.password_hash) {
+      throw new ConflictException('비밀번호가 없는 계정입니다(소셜 로그인 계정).');
+    }
+
+    const ok = await bcrypt.compare(currentPassword, user.password_hash || '');
+    if (!ok) throw new UnauthorizedException('현재 비밀번호가 일치하지 않습니다.');
+
+    const password_hash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.users.update({ where: { seq }, data: { password_hash } });
+    return { ok: true };
   }
 
   async createSocialUser(data: {

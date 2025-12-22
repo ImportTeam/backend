@@ -5,6 +5,7 @@ module.exports = {
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
+  globalSetup: '<rootDir>/test/jest-global-setup.js',
   collectCoverageFrom: [
     'src/**/*.(t|j)s',
     '!src/main.ts',

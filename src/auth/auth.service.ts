@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import * as bcrypt from 'bcryptjs';
@@ -36,7 +41,8 @@ export class AuthService {
   async login(loginDto: { email: string; password: string }) {
     const { email, password } = loginDto;
     const user = await this.usersService.findByEmail(email);
-    if (!user) throw new NotFoundException('해당 이메일의 사용자를 찾을 수 없습니다.');
+    if (!user)
+      throw new UnauthorizedException('해당 이메일의 사용자를 찾을 수 없습니다.');
 
     const isPasswordValid = await bcrypt.compare(password, user.password_hash || '');
     if (!isPasswordValid) throw new UnauthorizedException('비밀번호가 일치하지 않습니다.');
