@@ -73,7 +73,7 @@ export class DashboardController {
   @Get('metrics/aibenefitsummary')
   @ApiOperation({
     summary: 'AI 추천 혜택(요약)',
-    description: '최근 6개월 소비 요약 + 등록 결제수단 + (혜택 크롤링 데이터 연결 포인트)를 종합한 추천 결과/사유를 반환합니다. 현재는 더미 응답(스텁)입니다.',
+    description: '최근 6개월 소비 요약 + 등록 결제수단 + 혜택(크롤링) 데이터를 종합해 AI 추천 결과/사유를 반환합니다.',
   })
   @ApiResponse({ status: 200, description: '조회 성공', type: AiBenefitSummaryMetricResponseDto })
   @ApiResponse({ status: 401, description: '인증 실패', type: ErrorResponseDto })
@@ -105,7 +105,7 @@ export class DashboardController {
   @Get('charts/recommendedpaymentmethods')
   @ApiOperation({
     summary: '추천 결제수단 Top3',
-    description: '혜택 크롤링 데이터 + 소비 패턴 + (LLM 추천 연결 포인트)를 종합해 Top3를 반환합니다. 현재는 규칙/더미 기반입니다.',
+    description: '혜택 크롤링 데이터 + 소비 패턴을 종합해 AI가 추천하는 결제수단 Top3를 반환합니다.',
   })
   @ApiResponse({ status: 200, description: '조회 성공', type: RecommendedPaymentMethodsTop3ResponseDto })
   @ApiResponse({ status: 401, description: '인증 실패', type: ErrorResponseDto })

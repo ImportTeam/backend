@@ -2,7 +2,6 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AI_RECOMMENDATION_CLIENT, POPBILL_CLIENT } from './external.tokens';
 import { PopbillClientStub } from './popbill/popbill.stub';
-import { AiRecommendationClientStub } from './ai-recommendation/ai-recommendation.stub';
 import { AiRecommendationGeminiClient } from './ai-recommendation/ai-recommendation.gemini';
 
 @Global()
@@ -17,13 +16,14 @@ import { AiRecommendationGeminiClient } from './ai-recommendation/ai-recommendat
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const apiKey = (config.get<string>('GEMINI_API_KEY') ?? '').trim();
-        if (apiKey) {
-          return new AiRecommendationGeminiClient({
-            apiKey,
-            model: config.get<string>('GEMINI_MODEL') ?? undefined,
-          });
+        if (!apiKey) {
+          throw new Error('GEMINI_API_KEY is required to use AI recommendation features.');
         }
-        return new AiRecommendationClientStub();
+
+        return new AiRecommendationGeminiClient({
+          apiKey,
+          model: config.get<string>('GEMINI_MODEL') ?? undefined,
+        });
       },
     },
   ],

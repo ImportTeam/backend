@@ -14,7 +14,7 @@ export class RecommendedPaymentMethodItemDto {
   })
   name?: string;
 
-  @ApiProperty({ example: 92, description: '추천 점수(규칙/더미 기반)' })
+  @ApiProperty({ example: 92, description: '추천 점수(AI 분석 기반, 0~100)' })
   score: number;
 
   @ApiProperty({

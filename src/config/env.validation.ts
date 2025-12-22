@@ -89,9 +89,9 @@ class EnvironmentVariables {
   @IsString()
   NODE_ENV: string;
 
+  @IsNotEmpty()
   @IsString()
-  @IsOptional()
-  GEMINI_API_KEY?: string;
+  GEMINI_API_KEY: string;
 
   @IsString()
   @IsOptional()

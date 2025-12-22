@@ -355,24 +355,16 @@ export class DashboardService {
       };
     });
 
-    // Gemini 요약(선택): 키가 없거나 실패하면 차트 데이터는 그대로 반환
-    let ai: any = undefined;
-    try {
-      if ((process.env.GEMINI_API_KEY ?? '').trim()) {
-        ai = await this.aiClient.getMonthlySavingsNarrative({
-          months: items.map((m) => ({
-            month: m.month,
-            totalSpent: m.totalSpent,
-            totalBenefit: m.totalBenefit,
-            savingsAmount: m.savingsAmount,
-          })),
-        });
-      }
-    } catch (e) {
-      this.logger.warn(`MonthlySavingsNarrative skipped: ${(e as any)?.message ?? e}`);
-    }
+    const ai = await this.aiClient.getMonthlySavingsNarrative({
+      months: items.map((m) => ({
+        month: m.month,
+        totalSpent: m.totalSpent,
+        totalBenefit: m.totalBenefit,
+        savingsAmount: m.savingsAmount,
+      })),
+    });
 
-    return { data: items, ...(ai ? { ai } : {}) };
+    return { data: items, ai };
   }
 
   private async getRecentSixMonthsSummary(userUuid: string) {
@@ -488,20 +480,6 @@ export class DashboardService {
       offerCountByProvider.set(o.provider_name, (offerCountByProvider.get(o.provider_name) || 0) + 1);
     }
 
-    // 규칙 기반 점수 + LLM 스텁 결과를 합산
-    const baseScores = paymentMethods.map((pm) => {
-      const providerOffers = offerCountByProvider.get(pm.provider_name) || 0;
-      const topCategory = summary.byCategory[0]?.category;
-      const categoryBonus = topCategory ? 5 : 0;
-      const score = Math.min(100, 50 + providerOffers + categoryBonus);
-      return {
-        seq: pm.seq,
-        name: pm.alias ?? `${pm.provider_name}(${pm.last_4_nums})`,
-        score,
-        reason: `활성 혜택(${providerOffers}건)과 최근 소비 패턴을 고려한 규칙 기반 추천입니다.`,
-      };
-    });
-
     const aiTop3 = await this.aiClient.getRecommendedPaymentMethodsTop3({
       userUuid,
       recentSixMonthsSummary: {
@@ -515,30 +493,34 @@ export class DashboardService {
       ),
     });
 
-    const aiScoreBySeq = new Map<string, { score: number; reasonSummary: string }>();
-    for (const item of aiTop3.items) {
-      aiScoreBySeq.set(item.paymentMethodSeq.toString(), { score: item.score, reasonSummary: item.reasonSummary });
+    const methodNameBySeq = new Map<string, string>();
+    for (const pm of paymentMethods) {
+      methodNameBySeq.set(
+        pm.seq.toString(),
+        pm.alias ?? `${pm.provider_name}(${pm.last_4_nums})`,
+      );
     }
 
-    const merged = baseScores
-      .map((b) => {
-        const ai = aiScoreBySeq.get(b.seq.toString());
-        const mergedScore = ai ? Math.min(100, Math.round((b.score + ai.score) / 2)) : b.score;
-        const reasonSummary = ai ? `${b.reason} ${ai.reasonSummary}` : b.reason;
+    const mapped = aiTop3.items
+      .map((item) => {
+        const seqKey = item.paymentMethodSeq.toString();
+        const name = methodNameBySeq.get(seqKey);
+        if (!name) return null;
+        const score = Math.max(0, Math.min(100, Math.round(item.score)));
         return {
-          paymentMethodId: Number(b.seq),
-          paymentMethodName: b.name,
-          // chart-friendly aliases (Recharts 등)
-          name: b.name,
-          score: mergedScore,
-          value: mergedScore,
-          reasonSummary,
+          paymentMethodId: Number(item.paymentMethodSeq),
+          paymentMethodName: name,
+          name,
+          score,
+          value: score,
+          reasonSummary: item.reasonSummary,
         };
       })
-      .sort((a, b) => b.score - a.score)
+      .filter(Boolean)
+      .sort((a: any, b: any) => b.score - a.score)
       .slice(0, 3);
 
-    return { data: merged };
+    return { data: mapped };
   }
 
   async getRecentTransactionsBySite(userUuid: string, query: RecentSiteTransactionsQueryDto) {
