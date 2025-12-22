@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CreatePaymentMethodDto, PaymentType } from './dto/create-payment-method.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
+import { POPBILL_CLIENT } from '../external';
 
 jest.mock('../common/encryption.util', () => ({
   encrypt: jest.fn((data) => `encrypted_${data}`),
@@ -38,6 +39,20 @@ describe('PaymentMethodsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaymentMethodsService,
+        {
+          provide: POPBILL_CLIENT,
+          useValue: {
+            startCardRegistration: jest.fn(async () => ({
+              requestId: 'popbill_stub_test',
+              nextActionUrl: 'https://example.com/popbill/card-registration (stub)',
+            })),
+            getCardLimit: jest.fn(async () => ({
+              cardLimit: null,
+              estimatedRemainingLimit: null,
+              basisMessage: 'Popbill disabled: stub',
+            })),
+          },
+        },
         {
           provide: PrismaService,
           useValue: {

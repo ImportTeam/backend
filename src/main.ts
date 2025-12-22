@@ -7,6 +7,46 @@ import { ValidationPipe } from '@nestjs/common';
 import { CustomLoggerService } from './common/logger/logger.service';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
+import { spawnSync } from 'child_process';
+import { join } from 'path';
+
+function shouldAutoSeedOnStartup(): boolean {
+  if ((process.env.AUTO_DB_SEED ?? '').trim().toLowerCase() === 'false') {
+    return false;
+  }
+  if ((process.env.NODE_ENV ?? '').trim().toLowerCase() === 'production') {
+    return false;
+  }
+  // 개발/테스트 환경에서만 시드
+  const env = (process.env.NODE_ENV ?? '').trim().toLowerCase();
+  const isDevLike = env === 'development' || env === 'test' || env === '';
+  if (!isDevLike) return false;
+  // DB가 없으면 스킵
+  if (!process.env.DATABASE_URL) return false;
+  return true;
+}
+
+function runSeedOnStartupIfEnabled(): void {
+  if (!shouldAutoSeedOnStartup()) return;
+
+  const seedPath = join(process.cwd(), 'prisma', 'seed.ts');
+  console.log(`[Bootstrap] AUTO_DB_SEED enabled. Running seed: ${seedPath}`);
+
+  // nest start:dev / ts-node 환경에서 동작하도록 ts-node/register 사용
+  const result = spawnSync(
+    process.execPath,
+    ['-r', 'ts-node/register', seedPath],
+    {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+      env: { ...process.env, NODE_ENV: process.env.NODE_ENV || 'test' },
+    },
+  );
+
+  if (result.status !== 0) {
+    throw new Error(`DB seed failed on startup (exit code: ${result.status})`);
+  }
+}
 
 function normalizeCorsOrigin(value: string): string | null {
   const trimmed = value.trim();
@@ -76,6 +116,8 @@ function isAllowedCorsOrigin(
 async function bootstrap(): Promise<void> {
   try {
     console.log('[Bootstrap] Starting NestJS application...');
+
+    runSeedOnStartupIfEnabled();
 
     const isDevelopment = process.env.NODE_ENV === 'development';
 

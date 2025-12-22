@@ -14,8 +14,12 @@ describe('DashboardController', () => {
           provide: DashboardService,
           useValue: {
             getSavingsThisMonth: jest.fn(),
-            getTopMerchantThisMonth: jest.fn(),
-            getTopPaymentMethodThisMonth: jest.fn(),
+            getTopMerchant: jest.fn(),
+            getTopPaymentMethod: jest.fn(),
+            getAiBenefitSummary: jest.fn(),
+            getMonthlySavingsTrend: jest.fn(),
+            getRecommendedPaymentMethodsTop3: jest.fn(),
+            getRecentTransactionsBySite: jest.fn(),
           },
         },
       ],
@@ -33,5 +37,9 @@ describe('DashboardController', () => {
     expect(controller.getSavings).toBeDefined();
     expect(controller.getTopMerchant).toBeDefined();
     expect(controller.getTopPaymentMethod).toBeDefined();
+    expect(controller.getAiBenefitSummary).toBeDefined();
+    expect(controller.getMonthlySavingsTrend).toBeDefined();
+    expect(controller.getRecommendedPaymentMethodsTop3).toBeDefined();
+    expect(controller.getRecentTransactionsBySite).toBeDefined();
   });
 });

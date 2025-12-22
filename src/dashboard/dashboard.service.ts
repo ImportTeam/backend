@@ -274,11 +274,18 @@ export class DashboardService {
       const totalSpent = this.toNumber(agg._sum.amount ?? 0);
       const totalBenefit = this.toNumber(agg._sum.benefit_value ?? 0);
       const { savingsAmount } = this.computeSavingsMetric(totalSpent, totalBenefit);
+      const month = monthRanges[idx].label;
       return {
-        month: monthRanges[idx].label,
+        month,
+        // chart-friendly aliases (Recharts 등)
+        name: month,
         totalSpent,
+        spent: totalSpent,
         totalBenefit,
+        benefit: totalBenefit,
         savingsAmount,
+        saved: savingsAmount,
+        value: savingsAmount,
       };
     });
 
@@ -404,7 +411,10 @@ export class DashboardService {
         return {
           paymentMethodId: Number(b.seq),
           paymentMethodName: b.name,
+          // chart-friendly aliases (Recharts 등)
+          name: b.name,
           score: mergedScore,
+          value: mergedScore,
           reasonSummary,
         };
       })
