@@ -55,19 +55,4 @@ export class MonthlySavingsTrendResponseDto {
     description: '최근 6개월 월간 절약/지출 추이 데이터',
   })
   data: MonthlySavingsTrendItemDto[];
-
-  @ApiProperty({
-    required: false,
-    description: 'Gemini 기반 절약 추이 요약/인사이트(옵션)',
-    example: {
-      summary: '최근 2개월 절약률이 개선됐어요.',
-      insights: ['쇼핑 비중이 높아 쇼핑 혜택 집중이 유리해요.'],
-      months: [{ month: '2025-12', status: 'OK', comment: '혜택 적용이 안정적이에요' }],
-    },
-  })
-  ai?: {
-    summary: string;
-    insights: string[];
-    months: Array<{ month: string; status: 'GOOD' | 'OK' | 'BAD'; comment: string }>;
-  };
 }

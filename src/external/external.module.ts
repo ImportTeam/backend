@@ -2,7 +2,6 @@ import { Global, Module } from '@nestjs/common';
 import { AI_RECOMMENDATION_CLIENT, POPBILL_CLIENT } from './external.tokens';
 import { PopbillClientStub } from './popbill/popbill.stub';
 import { AiRecommendationClientStub } from './ai-recommendation/ai-recommendation.stub';
-import { AiRecommendationClientGemini } from './ai-recommendation/ai-recommendation.gemini';
 
 @Global()
 @Module({
@@ -13,11 +12,7 @@ import { AiRecommendationClientGemini } from './ai-recommendation/ai-recommendat
     },
     {
       provide: AI_RECOMMENDATION_CLIENT,
-      useFactory: () => {
-        const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
-        if (apiKey) return new AiRecommendationClientGemini();
-        return new AiRecommendationClientStub();
-      },
+      useClass: AiRecommendationClientStub,
     },
   ],
   exports: [POPBILL_CLIENT, AI_RECOMMENDATION_CLIENT],
