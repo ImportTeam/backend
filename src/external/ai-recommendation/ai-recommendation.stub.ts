@@ -7,6 +7,13 @@ import {
 } from './ai-recommendation.client';
 
 export class AiRecommendationClientStub implements AiRecommendationClient {
+  async getMonthlySavingsNarrative(): Promise<{ summary: string; highlights: string[] }> {
+    return {
+      summary: '최근 6개월 절약 추이 요약(더미)입니다.',
+      highlights: ['데이터/모델 연동 전 더미 응답입니다.'],
+    };
+  }
+
   async getBenefitRecommendationSummary(
     req: AiBenefitRecommendationSummaryRequest,
   ): Promise<AiBenefitRecommendationSummaryResponse> {

@@ -54,6 +54,72 @@ export class DashboardService {
     return '기타';
   }
 
+  private async buildBenefitOffersSummary(providerNames: string[], topCategories: string[]) {
+    const uniqueProviders = Array.from(new Set(providerNames.filter(Boolean)));
+    if (uniqueProviders.length === 0) return [];
+
+    // 크롤링 테이블(benefit_offers)에서 제공자별로 최근/활성 혜택 일부만 뽑아 LLM 컨텍스트로 전달
+    const offers = await this.prisma.benefit_offers.findMany({
+      where: {
+        active: true,
+        provider_name: { in: uniqueProviders },
+      },
+      select: {
+        provider_name: true,
+        title: true,
+        merchant_filter: true,
+        category_filter: true,
+        discount_type: true,
+        discount_value: true,
+        max_discount: true,
+        min_spend: true,
+      },
+      take: 300,
+      orderBy: [{ updated_at: 'desc' }, { created_at: 'desc' }],
+    });
+
+    const byProvider = new Map<string, any[]>();
+    for (const o of offers) {
+      const arr = byProvider.get(o.provider_name) ?? [];
+      arr.push(o);
+      byProvider.set(o.provider_name, arr);
+    }
+
+    const normalize = (v: any) => {
+      if (v === null || v === undefined) return null;
+      try {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      } catch {
+        return null;
+      }
+    };
+
+    return uniqueProviders.map((providerName) => {
+      const list = byProvider.get(providerName) ?? [];
+      // topCategories 관련/또는 대표성 있는 항목 우선
+      const scored = list
+        .map((o) => {
+          const cf = (o.category_filter ?? '').toString().toLowerCase();
+          const score = topCategories.some((c) => cf.includes(c.toLowerCase())) ? 2 : 0;
+          return { o, score };
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10)
+        .map(({ o }) => ({
+          title: o.title,
+          merchantFilter: o.merchant_filter,
+          categoryFilter: o.category_filter,
+          discountType: o.discount_type,
+          discountValue: normalize(o.discount_value) ?? 0,
+          maxDiscount: normalize(o.max_discount),
+          minSpend: normalize(o.min_spend),
+        }));
+
+      return { providerName, offers: scored };
+    });
+  }
+
   async getThisMonthSums(userUuid: string) {
     const now = new Date();
     const start = startOfMonth(now);
@@ -289,7 +355,24 @@ export class DashboardService {
       };
     });
 
-    return { data: items };
+    // Gemini 요약(선택): 키가 없거나 실패하면 차트 데이터는 그대로 반환
+    let ai: any = undefined;
+    try {
+      if ((process.env.GEMINI_API_KEY ?? '').trim()) {
+        ai = await this.aiClient.getMonthlySavingsNarrative({
+          months: items.map((m) => ({
+            month: m.month,
+            totalSpent: m.totalSpent,
+            totalBenefit: m.totalBenefit,
+            savingsAmount: m.savingsAmount,
+          })),
+        });
+      }
+    } catch (e) {
+      this.logger.warn(`MonthlySavingsNarrative skipped: ${(e as any)?.message ?? e}`);
+    }
+
+    return { data: items, ...(ai ? { ai } : {}) };
   }
 
   private async getRecentSixMonthsSummary(userUuid: string) {
@@ -343,14 +426,44 @@ export class DashboardService {
       orderBy: [{ is_primary: 'desc' }, { created_at: 'desc' }],
     });
 
+    const [monthlySavingsTrend, topMerchant, topPaymentMethod] = await Promise.all([
+      this.getMonthlySavingsTrend(userUuid).then((r: any) => r?.data ?? []),
+      this.getTopMerchant(userUuid),
+      this.getTopPaymentMethod(userUuid),
+    ]);
+
+    const topCategories = summary.byCategory.slice(0, 3).map((c) => c.category);
+    const benefitOffersSummary = await this.buildBenefitOffersSummary(
+      paymentMethods.map((pm) => pm.provider_name),
+      topCategories,
+    );
+
     const res = await this.aiClient.getBenefitRecommendationSummary({
       userUuid,
+      dashboardContext: {
+        monthlySavingsTrend: (monthlySavingsTrend || []).map((m: any) => ({
+          month: m.month,
+          totalSpent: m.totalSpent,
+          totalBenefit: m.totalBenefit,
+          savingsAmount: m.savingsAmount,
+        })),
+        topMerchant: topMerchant
+          ? { merchantName: topMerchant.merchantName, totalSpent: topMerchant.totalSpent }
+          : null,
+        topPaymentMethod: topPaymentMethod
+          ? {
+              paymentMethodName: topPaymentMethod.paymentMethodName,
+              thisMonthTotalAmount: topPaymentMethod.thisMonthTotalAmount,
+            }
+          : null,
+      },
       recentSixMonthsSummary: {
         totalSpent: summary.totalSpent,
         totalBenefit: summary.totalBenefit,
         byCategory: summary.byCategory,
       },
       paymentMethods: paymentMethods.map((pm) => ({ seq: pm.seq, providerName: pm.provider_name, alias: pm.alias })),
+      benefitOffersSummary,
     });
 
     return res;
@@ -396,6 +509,10 @@ export class DashboardService {
         byCategory: summary.byCategory,
       },
       paymentMethods: paymentMethods.map((pm) => ({ seq: pm.seq, providerName: pm.provider_name, alias: pm.alias })),
+      benefitOffersSummary: await this.buildBenefitOffersSummary(
+        paymentMethods.map((pm) => pm.provider_name),
+        summary.byCategory.slice(0, 3).map((c) => c.category),
+      ),
     });
 
     const aiScoreBySeq = new Map<string, { score: number; reasonSummary: string }>();

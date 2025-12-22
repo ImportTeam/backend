@@ -88,6 +88,14 @@ class EnvironmentVariables {
   @IsNotEmpty()
   @IsString()
   NODE_ENV: string;
+
+  @IsString()
+  @IsOptional()
+  GEMINI_API_KEY?: string;
+
+  @IsString()
+  @IsOptional()
+  GEMINI_MODEL?: string;
 }
 
 export function validate(config: Record<string, any>) {
