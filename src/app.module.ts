@@ -39,6 +39,12 @@ import { AppService } from './app.service';
     ThrottlerModule.forRoot({
       throttlers: [
         {
+          name: 'default',
+          limit: 10,
+          ttl: 60,
+        },
+        {
+          name: 'short',
           limit: 10,
           ttl: 60,
         },
