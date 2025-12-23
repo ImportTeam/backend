@@ -24,14 +24,16 @@ export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
   constructor(private readonly configService: ConfigService) {
     const prodCallbackURL = configService.get<string>('KAKAO_REDIRECT_PROD_URI');
     const devCallbackURL = configService.get<string>('KAKAO_REDIRECT_DEV_URI') || 'http://localhost:3000/api/auth/kakao/callback';
-    const callbackURL = normalizeOAuthCallbackUrl(
-      prodCallbackURL || devCallbackURL,
-      'kakao',
-    );
+    const nodeEnv = (configService.get<string>('NODE_ENV') ?? process.env.NODE_ENV ?? '')
+      .trim()
+      .toLowerCase();
+    const isProd = nodeEnv === 'production';
+    const selectedCallbackURL = isProd ? (prodCallbackURL || devCallbackURL) : devCallbackURL;
+    const callbackURL = normalizeOAuthCallbackUrl(selectedCallbackURL, 'kakao');
 
     const clientSecret = configService.get<string>('KAKAO_CLIENT_SECRET');
 
-    console.log(`[KakaoStrategy] Callback URL: ${callbackURL}`);
+    console.log(`[KakaoStrategy] Callback URL: ${callbackURL} (env=${nodeEnv || 'unknown'})`);
 
     const config: any = {
       clientID: configService.get<string>('KAKAO_CLIENT_ID'),

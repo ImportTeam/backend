@@ -11,6 +11,7 @@ import { AuthService } from './auth.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { LoginDto } from '../users/dto/login.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { KakaoAuthGuard } from './guards/kakao-auth.guard';
 import { 
   LoginResponseDto, 
   ErrorResponseDto,
@@ -86,7 +87,7 @@ export class AuthController {
   }
 
   @Get('kakao')
-  @UseGuards(AuthGuard('kakao'))
+  @UseGuards(KakaoAuthGuard)
   @ApiOperation({ summary: '소셜 로그인 시작 (Kakao)', description: '카카오 계정으로 로그인 시 사용합니다.' })
   @ApiResponse({ status: 302, description: 'Kakao 로그인 페이지로 리다이렉트' })
   async kakaoLogin() {
@@ -94,7 +95,7 @@ export class AuthController {
   }
 
   @Get('kakao/callback')
-  @UseGuards(AuthGuard('kakao'))
+  @UseGuards(KakaoAuthGuard)
   @ApiOperation({ summary: '소셜 로그인 콜백 (Kakao)', description: '카카오 인증 완료 후 토큰을 발급하고 세션을 생성합니다.' })
   @ApiResponse({ status: 200, description: '소셜 로그인 성공, JWT 토큰 반환', type: LoginResponseDto })
   @ApiResponse({ status: 400, description: '이메일 정보가 제공되지 않음', type: ErrorResponseDto })

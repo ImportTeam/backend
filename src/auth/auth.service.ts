@@ -3,6 +3,8 @@ import {
   UnauthorizedException,
   NotFoundException,
   InternalServerErrorException,
+  BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
@@ -29,6 +31,11 @@ function parseDurationToMs(duration: string | undefined) {
     default:
       return 0;
   }
+}
+
+function isPrismaUniqueConstraintError(error: unknown): boolean {
+  const anyErr = error as any;
+  return Boolean(anyErr && anyErr.code === 'P2002');
 }
 
 @Injectable()
@@ -164,22 +171,44 @@ export class AuthService {
   }
 
   async socialLogin(socialUser: any) {
+    if (!socialUser || typeof socialUser !== 'object') {
+      throw new BadRequestException('소셜 로그인 사용자 정보가 유효하지 않습니다.');
+    }
+
     const { email, name, provider, providerId } = socialUser;
+    if (!email || typeof email !== 'string') {
+      throw new BadRequestException('이메일 정보가 필요합니다.');
+    }
+    if (!provider || typeof provider !== 'string' || !providerId || typeof providerId !== 'string') {
+      throw new BadRequestException('소셜 로그인 제공자 정보가 유효하지 않습니다.');
+    }
 
     let user = await this.usersService.findByEmail(email);
 
-    if (user) {
-      if (!user.social_id || user.social_provider === 'NONE') {
-        await this.usersService.linkSocialAccountByEmail(email, provider, providerId);
-        user = await this.usersService.findByEmail(email);
+    try {
+      if (user) {
+        if (!user.social_id || user.social_provider === 'NONE') {
+          await this.usersService.linkSocialAccountByEmail(email, provider, providerId);
+          user = await this.usersService.findByEmail(email);
+        }
+      } else {
+        user = await this.usersService.createSocialUser({
+          email,
+          name,
+          provider,
+          providerId,
+        });
       }
-    } else {
-      user = await this.usersService.createSocialUser({
-        email,
-        name,
-        provider,
-        providerId,
-      });
+    } catch (error) {
+      // Race condition: another request created the same email concurrently.
+      if (isPrismaUniqueConstraintError(error)) {
+        user = await this.usersService.findByEmail(email);
+        if (!user) {
+          throw new ConflictException('이미 존재하는 이메일입니다. 다시 시도해주세요.');
+        }
+      } else {
+        throw error;
+      }
     }
 
     if (!user) throw new InternalServerErrorException('사용자 생성/링크 후 사용자 정보를 확인할 수 없습니다.');
