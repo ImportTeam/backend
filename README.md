@@ -1,79 +1,196 @@
-# PicSel Backend
+\# PicSel Backend
 
-## PicSel 인증 API
+PicSel 결제 추천 서비스 백엔드 (NestJS + Prisma).
 
-모든 엔드포인트는 기본 prefix `/api`가 붙습니다. 예: `/api/auth/...`
+## 빠른 링크
 
-- Email
-  - POST `/api/auth/email/login` — 이메일/비밀번호 로그인
-  - POST `/api/auth/email/register` — 이메일 회원가입
-  - POST `/api/auth/email/verify/:token` — 이메일 인증(2차) 토큰 검증
-  - DELETE `/api/auth/email/delete/:userId` — 사용자 삭제 (uuid 또는 seq)
-- Google
-  - GET `/api/auth/google` — Google 로그인 시작 (리다이렉트)
-  - GET `/api/auth/google/callback` — Google 콜백
-  - POST `/api/auth/google/login` — 명세 호환용 POST 별칭
-  - POST `/api/auth/google/login/callback` — 명세 호환용 POST 콜백 별칭
-  - DELETE `/api/auth/google/delete/:userId` — 사용자 삭제
-- Kakao
-  - GET `/api/auth/kakao` — Kakao 로그인 시작 (리다이렉트)
-  - GET `/api/auth/kakao/callback` — Kakao 콜백
-  - POST `/api/auth/kakao/login` — 명세 호환용 POST 별칭
-  - POST `/api/auth/kakao/login/callback` — 명세 호환용 POST 콜백 별칭
-  - DELETE `/api/auth/kakao/delete/:userId` — 사용자 삭제
+- API Prefix: `/api` (예: `/api/health`)
+- Swagger UI: `/swagger`
+- Health Check: `GET /api/health`
 
-상세 스펙과 테스트는 Swagger UI(`/swagger`)에서 확인할 수 있습니다.
+## 기술 스택
 
-## Deployment (AWS EC2, no Docker)
+- Node.js + TypeScript
+- NestJS
+- Prisma (MySQL)
+- Swagger (OpenAPI)
+- Jest / Vitest
 
-이 레포는 GitHub Actions로 EC2에 무도커 배포를 지원합니다.
+## 로컬 실행 (Quick Start)
 
-- Workflow: [.github/workflows/deploy-ec2.yml](.github/workflows/deploy-ec2.yml)
-- 방식: GitHub Actions에서 `pnpm build` → `dist` 아카이브 업로드 → EC2에서 `pnpm install --prod` 후 `pm2` 재시작
-
-필수 GitHub Secrets
-
-- `EC2_HOST`: 예) `3.38.107.119`
-- `EC2_USER`: 예) `ec2-user`
-- `EC2_PORT`: 예) `22`
-- `EC2_SSH_KEY`: EC2에 등록된 SSH private key (권장: password login 비활성화)
-
-EC2 준비
-
-- Node.js + npm 설치
-- 앱 디렉터리 생성: `/home/ec2-user/picsel-backend`
-- 런타임 환경변수는 `/home/ec2-user/picsel-backend/.env`로 관리 (`.env`는 Git에 커밋하지 않음)
-
-## Project setup
+### 1) 의존성 설치
 
 ```bash
-npm install
+pnpm install
 ```
 
-## Compile and run the project
+### 2) 환경변수 설정
+
+루트에 `.env` 파일을 생성하고 아래 변수를 설정합니다. 이 프로젝트는 [src/config/env.validation.ts](src/config/env.validation.ts)에서 환경변수를 강하게 검증합니다.
+
+필수(누락 시 부팅 실패):
 
 ```bash
-# development
-npm run start
+NODE_ENV=development
 
-# watch mode
-npm run start:dev
+DATABASE_URL="mysql://USER:PASSWORD@HOST:3306/DB_NAME"
 
-# production mode
-npm run start:prod
+JWT_SECRET="your-jwt-secret"
+ENCRYPTION_KEY="your-encryption-key"
+
+GOOGLE_CLIENT_ID="..."
+GOOGLE_CLIENT_SECRET="..."
+KAKAO_CLIENT_ID="..."
+KAKAO_CLIENT_SECRET="..."
+NAVER_CLIENT_ID="..."
+NAVER_CLIENT_SECRET="..."
+
+GEMINI_API_KEY="..."
+GEMINI_MODEL="" # optional
 ```
 
-## Run tests
+선택(환경/배포에 따라 유용):
 
 ```bash
-# unit tests
-npm run test
+PORT=3000
 
-# e2e tests
-npm run test:e2e
+# OAuth Redirect (옵션)
+GOOGLE_REDIRECT_DEV_URI=""
+GOOGLE_REDIRECT_PROD_URI=""
+KAKAO_REDIRECT_DEV_URI=""
+KAKAO_REDIRECT_PROD_URI=""
+NAVER_REDIRECT_DEV_URI=""
+NAVER_REDIRECT_PROD_URI=""
 
-# test coverage
-npm run test:cov
+# CORS
+CORS_ORIGINS="https://example.com,http://localhost:5173"
+FRONTEND_URL="https://example.com" # CORS_ORIGINS 미설정 시 대체
+CORS_ALLOW_LOCALHOST=false
+CORS_ALLOW_PICSEL_SUBDOMAINS=true
+
+# Logging
+LOG_LEVEL=info
+
+# 개발 환경 자동 시드(옵션)
+AUTO_DB_SEED=true
+REQUIRE_DB_SEED=false
+AUTO_DB_SEED_RETRIES=5
+AUTO_DB_SEED_RETRY_DELAY_MS=1500
+```
+
+### 3) DB 준비 (Prisma)
+
+MySQL을 준비한 뒤 아래 중 하나를 사용합니다.
+
+```bash
+# 마이그레이션 적용(개발용)
+pnpm db:migrate
+
+# 클라이언트 생성
+pnpm db:generate
+
+# 시드 실행
+pnpm db:seed
+```
+
+### 4) 서버 실행
+
+```bash
+# 개발(Watch)
+pnpm dev
+
+# 빌드
+pnpm build
+
+# 프로덕션 실행(빌드 산출물 기준)
+pnpm start
+```
+
+실행 후:
+
+- Swagger: `http://localhost:3000/swagger`
+- Health: `http://localhost:3000/api/health`
+
+## 주요 명령어
+
+```bash
+pnpm lint
+pnpm lint:fix
+pnpm format
+pnpm format:check
+
+pnpm test
+pnpm test:e2e
+pnpm test:cov
+
+pnpm test:vitest
+pnpm test:vitest:watch
+pnpm test:vitest:cov
+```
+
+## API 확인 방법
+
+엔드포인트 상세 스펙/요청·응답 예제는 Swagger UI(`/swagger`)를 기준으로 확인합니다.
+
+- 인증/사용자: [docs/guide/01_AUTH_INTEGRATION_GUIDE.md](docs/guide/01_AUTH_INTEGRATION_GUIDE.md), [docs/guide/02_USERS_INTEGRATION_GUIDE.md](docs/guide/02_USERS_INTEGRATION_GUIDE.md)
+- 결제수단: [docs/guide/03_PAYMENT_METHODS_GUIDE.md](docs/guide/03_PAYMENT_METHODS_GUIDE.md)
+- 혜택 비교: [docs/guide/04_BENEFITS_GUIDE.md](docs/guide/04_BENEFITS_GUIDE.md)
+- 결제 내역: [docs/guide/06_PAYMENTS_GUIDE.md](docs/guide/06_PAYMENTS_GUIDE.md)
+- Swagger 사용 가이드: [docs/guide/SWAGGER/SWAGGER_DOCUMENTATION_GUIDE.md](docs/guide/SWAGGER/SWAGGER_DOCUMENTATION_GUIDE.md)
+
+## 배포 (AWS EC2, no Docker)
+
+이 레포는 GitHub Actions에서 EC2에 SSH 접속 후 서버에서 `run.sh`를 실행하는 방식의 무도커 배포를 사용합니다.
+
+- Workflow: [.github/workflows/deploy.yml](.github/workflows/deploy.yml)
+- Deploy script: [run.sh](run.sh)
+
+필수 GitHub Secrets (워크플로 기준):
+
+- `SERVER_HOST`
+- `SERVER_USER`
+- `SERVER_PASSWORD`
+
+EC2 준비 사항(예시):
+
+- 코드 위치: `/home/ec2-user/app/picsel-backend`
+- `pnpm` 설치
+- `pm2` 설치 및 권한 설정
+- 런타임 환경변수 `.env` 배치(서버 내에서 관리, Git 커밋 금지)
+
+## Docker
+
+Dockerfile이 포함되어 있습니다.
+
+```bash
+docker build -t picsel-backend .
+docker run --rm -p 3000:3000 --env-file .env picsel-backend
+```
+
+## 디렉토리 구조
+
+```text
+src/
+  auth/                 인증/소셜 로그인
+  users/                사용자/마이페이지
+  payment-methods/      결제수단
+  payments/             결제/기록
+  benefits/             혜택 비교/추출
+  dashboard/            대시보드 통계
+  analytics/            소비 분석
+  admin/                관리자/디버그용 API
+  crawler/              외부 데이터 수집/크롤러
+  external/             외부 연동(예: AI 추천, Popbill 등)
+  common/               공통 유틸/가드/필터/로거/Swagger DTO
+  prisma/               Prisma 연동 서비스
+prisma/
+  schema.prisma         DB 스키마(MySQL)
+  migrations/           마이그레이션
+  seed.ts               시드 스크립트
+docs/
+  guide/                FE 연동/Swagger 가이드
+  db-migration/         DB 마이그레이션 문서
+test/                   e2e 및 테스트 설정
 ```
 
 <!-- ## Deployment
