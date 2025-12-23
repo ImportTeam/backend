@@ -1,4 +1,4 @@
-\# PicSel Backend
+# PicSel Backend
 
 PicSel 결제 추천 서비스 백엔드 (NestJS + Prisma).
 
