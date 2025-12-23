@@ -72,8 +72,8 @@ model payment_methods {
   alias              String?     @db.VarChar(50)   // 사용자 지정 별칭
   is_primary         Boolean     @default(false)   // 주 결제수단 여부
   
-  // PortOne Billing Key 정보
-  billing_key_id     String?     @unique           // PortOne Billing Key ID
+  // (레거시) 외부 결제 제공자 Billing Key 정보
+  billing_key_id     String?     @unique           // (레거시) 외부 결제 제공자 Billing Key ID
   billing_key_status String?     @db.VarChar(50)   // ISSUED, PENDING, DELETED
   
   // 통신사 정보 (본인인증용)
@@ -128,9 +128,9 @@ model payment_transactions {
   benefit_desc        String?   @db.VarChar(255)
   compared_at         DateTime?
   
-  // PortOne 결제 정보
-  portone_payment_id  String?   @unique           // PortOne Payment ID
-  portone_transaction_id String? @db.VarChar(255) // PortOne Transaction ID
+  // (레거시) 외부 결제 제공자 결제 정보
+  portone_payment_id  String?   @unique           // (레거시) 외부 결제 제공자 Payment ID
+  portone_transaction_id String? @db.VarChar(255) // (레거시) 외부 결제 제공자 Transaction ID
   status              String    @default("PENDING") // PENDING, COMPLETED, FAILED, CANCELLED
   
   created_at          DateTime  @default(now())
@@ -151,8 +151,8 @@ model identity_verifications {
   uuid                String   @unique @db.VarChar(36)
   user_uuid           String
   
-  // PortOne 정보
-  portone_id          String   @unique           // PortOne Identity Verification ID
+  // (레거시) 외부 본인인증 제공자 정보
+  portone_id          String   @unique           // (레거시) 외부 본인인증 트랜잭션 ID
   channel_key         String   @db.VarChar(255)
   operator            String   @db.VarChar(20)   // SKT, KT, LG, MVN, PASS
   method              String   @db.VarChar(20)   // SMS, APP, PASS

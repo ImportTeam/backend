@@ -27,7 +27,7 @@ describe('UsersController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('should have deleteMe method', () => {
+  it('should have deleteMe method (current user delete)', () => {
     expect(controller.deleteMe).toBeDefined();
   });
 });

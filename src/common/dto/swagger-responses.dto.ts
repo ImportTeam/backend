@@ -244,54 +244,6 @@ export class PaymentRecordResponseDto {
   data: PaymentTransactionDto;
 }
 
-export class IdentityVerificationResponseDto {
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440003' })
-  id: string;
-
-  @ApiProperty({ example: 'p_test', description: 'PortOne Identity ID' })
-  portoneId: string;
-
-  @ApiProperty({ example: 'SENT', enum: ['SENT', 'VERIFIED', 'FAILED', 'EXPIRED'] })
-  status: string;
-
-  @ApiProperty({ example: '본인인증 요청이 전송되었습니다' })
-  message: string;
-
-  @ApiProperty({ example: '2025-11-12T13:59:44.000Z' })
-  requestedAt: string;
-}
-
-export class BillingKeyResponseDto {
-  @ApiProperty({ example: 1 })
-  seq: number;
-
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440004' })
-  uuid: string;
-
-  @ApiProperty({ example: 'billing-key-abc123', description: 'PortOne Billing Key' })
-  billingKeyId: string;
-
-  @ApiProperty({ example: '신한카드' })
-  cardName: string;
-
-  @ApiProperty({ example: '1234' })
-  last4: string;
-
-  @ApiProperty({ example: true, description: '기본 빌링키 여부' })
-  isDefault: boolean;
-
-  @ApiProperty({ example: '2025-11-12T13:59:44.000Z' })
-  createdAt: string;
-}
-
-export class BillingKeysListResponseDto {
-  @ApiProperty({
-    type: [BillingKeyResponseDto],
-    description: '빌링키 목록',
-  })
-  data: BillingKeyResponseDto[];
-}
-
 export class ErrorResponseDto {
   @ApiProperty({ example: 400, description: 'HTTP 상태 코드' })
   statusCode: number;

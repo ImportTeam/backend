@@ -52,9 +52,9 @@ export class DashboardController {
 
   /**
    * curl 예시(로컬)
-   * curl -X GET "http://localhost:3000/api/dashboard/metrics/top-payment-method" -H "Authorization: Bearer <JWT>"
+   * curl -X GET "http://localhost:3000/api/dashboard/metrics/top-paymethod" -H "Authorization: Bearer <JWT>"
    */
-  @Get('metrics/top-payment-method')
+  @Get('metrics/top-paymethod')
   @ApiOperation({
     summary: '최다 사용 결제수단(Top1)',
     description: '연결된 결제수단 중 이번 달 사용 금액 기준으로 Top1을 반환합니다. (데이터가 없으면 최근 6개월 기준으로 보정)',
@@ -68,9 +68,9 @@ export class DashboardController {
 
   /**
    * curl 예시(로컬)
-   * curl -X GET "http://localhost:3000/api/dashboard/metrics/ai-benefit-summary" -H "Authorization: Bearer <JWT>"
+   * curl -X GET "http://localhost:3000/api/dashboard/metrics/ai-benefits" -H "Authorization: Bearer <JWT>"
    */
-  @Get('metrics/ai-benefit-summary')
+  @Get('metrics/ai-benefits')
   @ApiOperation({
     summary: 'AI 추천 혜택(요약)',
     description: '최근 6개월 소비 요약 + 등록 결제수단 + 혜택(크롤링) 데이터를 종합해 AI 추천 결과/사유를 반환합니다.',
@@ -100,9 +100,9 @@ export class DashboardController {
 
   /**
    * curl 예시(로컬)
-   * curl -X GET "http://localhost:3000/api/dashboard/metrics/ai-recommended-payment-methods" -H "Authorization: Bearer <JWT>"
+   * curl -X GET "http://localhost:3000/api/dashboard/metrics/ai-top3" -H "Authorization: Bearer <JWT>"
    */
-  @Get('metrics/ai-recommended-payment-methods')
+  @Get('metrics/ai-top3')
   @ApiOperation({
     summary: 'AI 추천 결제수단 Top3',
     description: '혜택 크롤링 데이터 + 소비 패턴을 종합해 AI가 추천하는 결제수단 Top3를 반환합니다.',
@@ -116,9 +116,9 @@ export class DashboardController {
 
   /**
    * curl 예시(로컬)
-   * curl -X GET "http://localhost:3000/api/dashboard/transactions/recent-by-site?page=1&size=10" -H "Authorization: Bearer <JWT>"
+   * curl -X GET "http://localhost:3000/api/dashboard/transactions/recent-site?page=1&size=10" -H "Authorization: Bearer <JWT>"
    */
-  @Get('transactions/recent-by-site')
+  @Get('transactions/recent-site')
   @ApiOperation({
     summary: '최근 사이트별 결제내역',
     description: '사이트명/결제일/결제수단/할인·적립 금액을 포함한 최근 결제 내역을 페이지 단위로 반환합니다.',

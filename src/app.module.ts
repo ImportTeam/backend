@@ -12,10 +12,6 @@ import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
 import { BenefitsModule } from './benefits/benefits.module';
 import { PaymentsModule } from './payments/payments.module';
 import { CrawlerModule } from './crawler/crawler.module';
-import { PortOneModule } from './portone/portone.module';
-import { IdentityVerificationsModule } from './identity-verifications/identity-verifications.module';
-import { BillingKeysModule } from './billing-keys/billing-keys.module';
-import { TestModule } from './test/test.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ExternalModule } from './external';
 import { AnalyticsModule } from './analytics/analytics.module';
@@ -60,10 +56,6 @@ import { AppService } from './app.service';
     BenefitsModule,
     PaymentsModule,
     CrawlerModule,
-    PortOneModule,
-    IdentityVerificationsModule,
-    BillingKeysModule,
-    TestModule,
     DashboardModule,
     AnalyticsModule,
   ],

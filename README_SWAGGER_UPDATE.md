@@ -216,18 +216,6 @@ const config = new DocumentBuilder()
 
 ## 🔍 본인인증 401 에러 해결
 
-**문제**: `POST /api/identity-verifications/{portoneId}/send` → 401
-**원인**: JWT 토큰이 필요함 (인증 필수 엔드포인트)
-
-**해결**:
-1. 로그인으로 JWT 토큰 획득
-2. `Authorization: Bearer {TOKEN}` 헤더 추가
-3. POST 메서드 사용 (GET 아님)
-4. 올바른 경로 사용
-
-자세한 내용: `IDENTITY_VERIFICATION_401_DEBUG.md` 참고
-
----
 
 ## 📚 사용 가이드
 

@@ -29,13 +29,7 @@
 - TOP 3 추천
 - HTML에서 혜택 정보 추출
 
-### 5. **PortOne 연동 모듈** (`05_PORTONE_INTEGRATION_GUIDE.md`)
-책임: 본인인증, 빌링키, 결제 이력 관리
-- 본인인증 (SMS/APP)
-- 빌링키 발급
-- 결제 이력 조회 및 통계
-
-### 6. **결제 기록 모듈** (`06_PAYMENTS_GUIDE.md`)
+### 5. **결제 기록 모듈** (`06_PAYMENTS_GUIDE.md`)
 책임: 결제 거래 기록
 - 결제 내역 기록
 - 거래 정보 저장
@@ -70,7 +64,7 @@
 
 ```
 1. 사용자 정보 조회
-   GET /users/me
+  GET /users/current
    ↓
 2. 결제 수단 등록
    POST /payment-methods
@@ -108,27 +102,6 @@
 **관련 문서**:
 - [`04_BENEFITS_GUIDE.md`](./04_BENEFITS_GUIDE.md)
 - [`06_PAYMENTS_GUIDE.md`](./06_PAYMENTS_GUIDE.md)
-
----
-
-### 플로우 4: 본인인증 및 정기결제 설정
-
-```
-1. 본인인증 시작
-   POST /identity-verifications/{portoneId}/send
-   ↓
-2. OTP 수신 (SMS/앱)
-   ↓
-3. OTP 검증
-   POST /identity-verifications/{portoneId}/confirm
-   ↓
-4. 빌링키 발급
-   POST /billing-keys
-   ↓
-5. 정기결제 등록 (비즈니스 로직)
-```
-
-**관련 문서**: [`05_PORTONE_INTEGRATION_GUIDE.md`](./05_PORTONE_INTEGRATION_GUIDE.md)
 
 ---
 
@@ -271,9 +244,9 @@ export function useApp() {
 | | GET | /auth/google/login | X | Google 로그인 |
 | | GET | /auth/kakao/login | X | Kakao 로그인 |
 | | GET | /auth/naver/login | X | Naver 로그인 |
-| **USERS** | GET | /users/me | O | 사용자 정보 조회 |
-| | PATCH | /users/me | O | 사용자 정보 수정 |
-| | DELETE | /users/me | O | 계정 삭제 |
+| **USERS** | GET | /users/current | O | 사용자 정보 조회 |
+| | PATCH | /users/current | O | 사용자 정보 수정 |
+| | DELETE | /users/current | O | 계정 삭제 |
 | **PAYMENT METHODS** | POST | /payment-methods | O | 결제 수단 등록 |
 | | GET | /payment-methods | O | 결제 수단 목록 |
 | | GET | /payment-methods/{id} | O | 결제 수단 조회 |
@@ -286,16 +259,6 @@ export function useApp() {
 | | GET | /benefits/extract | X | HTML 혜택 추출 |
 | | POST | /benefits/top3-from-html | X | HTML 기반 TOP3 |
 | **PAYMENTS** | POST | /payments/record | X | 결제 기록 |
-| **IDENTITY** | POST | /identity-verifications/{id}/send | O | 본인인증 시작 |
-| | POST | /identity-verifications/{id}/confirm | O | OTP 검증 |
-| | POST | /identity-verifications/{id}/resend | O | 본인인증 재발송 |
-| | GET | /identity-verifications/{id} | O | 본인인증 조회 |
-| | GET | /identity-verifications | O | 본인인증 목록 |
-| **BILLING KEYS** | POST | /billing-keys | O | 빌링키 발급 |
-| | GET | /billing-keys | O | 빌링키 목록 |
-| | GET | /billing-keys/{id} | O | 빌링키 조회 |
-| | PATCH | /billing-keys/{id}/default | O | 기본 빌링키 설정 |
-| | DELETE | /billing-keys/{id} | O | 빌링키 삭제 |
 | **PAYMENT HISTORY** | GET | /payments/history | O | 결제 이력 조회 |
 | | GET | /payments/history/{id} | O | 결제 상세 조회 |
 | | GET | /payments/statistics/overview | O | 결제 통계 |
@@ -325,7 +288,7 @@ curl -X POST http://localhost:3000/auth/email/login \
   }'
 
 # 사용자 정보 조회
-curl -X GET http://localhost:3000/users/me \
+curl -X GET http://localhost:3000/users/current \
   -H "Authorization: Bearer {access_token}"
 ```
 
@@ -381,14 +344,14 @@ apiClient.interceptors.response.use((response) => {
 │  │ - 사용자 정보 수정                        │  │
 │  └───────────────────────────────────────────┘  │
 │           ↙              ↓              ↘        │
-│  ┌─────────────┐  ┌──────────┐  ┌────────────┐  │
-│  │  Payment    │  │ Benefits │  │ PortOne    │  │
-│  │  Methods    │  │ Comparison│ │  Integration│ │
-│  │  Module (03)│  │ Module(04)│ │  (05)      │  │
-│  └─────────────┘  └──────────┘  └────────────┘  │
-│           ↓              ↓              ↓        │
+│  ┌─────────────┐  ┌──────────┐                  │
+│  │  Payment    │  │ Benefits │                  │
+│  │  Methods    │  │ Comparison│                 │
+│  │  Module (03)│  │ Module(04)│                 │
+│  └─────────────┘  └──────────┘                  │
+│           ↓              ↓                       │
 │  ┌───────────────────────────────────────────┐  │
-│  │         Payments Module (06)              │  │
+│  │         Payments Module (05)              │  │
 │  │ - 결제 기록                               │  │
 │  │ - 결제 내역                               │  │
 │  └───────────────────────────────────────────┘  │
@@ -403,7 +366,6 @@ apiClient.interceptors.response.use((response) => {
         │  - Payment Methods Service   │
         │  - Benefits Service          │
         │  - Payments Service          │
-        │  - PortOne Service           │
         │                              │
         └──────────────────────────────┘
                        │
@@ -414,7 +376,6 @@ apiClient.interceptors.response.use((response) => {
         │  - users                     │
         │  - payment_methods           │
         │  - payment_transactions      │
-        │  - identity_verifications    │
         │                              │
         └──────────────────────────────┘
                        │
@@ -422,7 +383,6 @@ apiClient.interceptors.response.use((response) => {
         ┌──────────────────────────────┐
         │    External Services         │
         │                              │
-        │  - PortOne API               │
         │  - Google OAuth              │
         │  - Kakao OAuth               │
         │  - Naver OAuth               │
@@ -523,7 +483,6 @@ app.enableCors({
 
 ## 📚 추가 자료
 
-- [PortOne 공식 문서](https://developers.portone.io)
 - [NestJS 공식 문서](https://docs.nestjs.com)
 - [React 공식 문서](https://react.dev)
 - [Prisma ORM](https://www.prisma.io/docs)
@@ -544,7 +503,6 @@ app.enableCors({
 | 사용자 정보 | [`02_USERS_INTEGRATION_GUIDE.md`](./02_USERS_INTEGRATION_GUIDE.md) | 프로필 관리 |
 | 결제 수단 | [`03_PAYMENT_METHODS_GUIDE.md`](./03_PAYMENT_METHODS_GUIDE.md) | 카드 관리 |
 | 혜택 비교 | [`04_BENEFITS_GUIDE.md`](./04_BENEFITS_GUIDE.md) | 혜택 분석 |
-| PortOne 연동 | [`05_PORTONE_INTEGRATION_GUIDE.md`](./05_PORTONE_INTEGRATION_GUIDE.md) | 본인인증/빌링키 |
 | 결제 기록 | [`06_PAYMENTS_GUIDE.md`](./06_PAYMENTS_GUIDE.md) | 거래 기록 |
 
 ---

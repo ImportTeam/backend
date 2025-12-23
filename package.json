@@ -40,8 +40,6 @@
     "@nestjs/serve-static": "^5.0.4",
     "@nestjs/swagger": "^11.2.1",
     "@nestjs/throttler": "^6.4.0",
-    "@portone/browser-sdk": "^0.1.1",
-    "@portone/server-sdk": "^0.17.0",
     "@prisma/client": "^6.19.0",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",

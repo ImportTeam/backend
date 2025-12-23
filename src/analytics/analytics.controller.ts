@@ -17,9 +17,9 @@ export class AnalyticsController {
 
   /**
    * curl 예시(로컬)
-   * curl -X GET "http://localhost:3000/api/analytics/charts/category-spending" -H "Authorization: Bearer <JWT>"
+   * curl -X GET "http://localhost:3000/api/analytics/charts/category" -H "Authorization: Bearer <JWT>"
    */
-  @Get('charts/category-spending')
+  @Get('charts/category')
   @ApiOperation({
     summary: '카테고리별 지출(최근 6개월)',
     description: '최근 6개월 지출을 카테고리별로 합산해 파이차트로 바로 그릴 수 있는 형태(라벨/값/비율)로 반환합니다.',
@@ -33,9 +33,9 @@ export class AnalyticsController {
 
   /**
    * curl 예시(로컬)
-   * curl -X GET "http://localhost:3000/api/analytics/charts/monthly-spending" -H "Authorization: Bearer <JWT>"
+   * curl -X GET "http://localhost:3000/api/analytics/charts/monthly" -H "Authorization: Bearer <JWT>"
    */
-  @Get('charts/monthly-spending')
+  @Get('charts/monthly')
   @ApiOperation({
     summary: '월간 지출 추이(최근 6개월)',
     description: '최근 6개월 월별 총 지출 합계를 반환합니다. (대시보드 월간 추이와 같은 성격의 데이터)',

@@ -23,9 +23,6 @@
 ✅ BenefitsCompareResponseDto - 혜택 비교 응답
 ✅ PaymentTransactionDto - 결제 거래 정보
 ✅ PaymentRecordResponseDto - 결제 기록 응답
-✅ IdentityVerificationResponseDto - 본인인증 상태
-✅ BillingKeyResponseDto - 빌링키 정보
-✅ BillingKeysListResponseDto - 빌링키 목록
 ✅ ErrorResponseDto - 에러 응답
 ✅ UnauthorizedErrorDto - 인증 실패 응답
 ```
@@ -123,7 +120,7 @@ Authorization: Bearer YOUR_JWT_TOKEN
 
 {
   "alias": "내 신용카드",
-  "cardToken": "card_token_from_portone",
+  "cardToken": "card_token_from_provider",
   "isPrimary": true
 }
 
@@ -230,7 +227,7 @@ value: 2 (수치)
 
 ## ✅ 완료 체크리스트
 
-- ✅ 모든 응답 DTO 생성 (15개 이상)
+- ✅ 모든 응답 DTO 생성
 - ✅ Auth 컨트롤러 모든 엔드포인트 문서화
 - ✅ Payment Methods 컨트롤러 모든 엔드포인트 문서화
 - ✅ Benefits 컨트롤러 모든 엔드포인트 문서화

@@ -32,9 +32,9 @@ export class UsersController {
   constructor(private readonly users: UsersService) {}
 
   @UseGuards(AuthGuard('jwt'))
-  @Get('me')
+  @Get('current')
   @ApiBearerAuth()
-  @ApiOperation({ summary: '현재 사용자 정보 조회', description: '프론트 연동 가이드(/users/me) 호환 엔드포인트입니다.' })
+  @ApiOperation({ summary: '현재 사용자 정보 조회', description: '현재 로그인한 사용자의 기본 정보를 조회합니다.' })
   @ApiResponse({ status: 200, type: MeResponseDto })
   async getMe(@Req() req: any): Promise<MeResponseDto> {
     const user = req.user;
@@ -56,9 +56,9 @@ export class UsersController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Patch('me')
+  @Patch('current')
   @ApiBearerAuth()
-  @ApiOperation({ summary: '사용자 정보 수정', description: '프론트 연동 가이드(/users/me) 호환. 이름/이메일 및 설정을 수정합니다.' })
+  @ApiOperation({ summary: '사용자 정보 수정', description: '현재 로그인한 사용자의 이름/이메일 및 설정을 수정합니다.' })
   @ApiResponse({ status: 200, type: UpdateMeResponseDto })
   async updateMe(@Req() req: any, @Body() dto: UpdateCurrentUserDto): Promise<UpdateMeResponseDto> {
     const user = req.user;
@@ -77,9 +77,9 @@ export class UsersController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Delete('me')
+  @Delete('current')
   @ApiBearerAuth()
-  @ApiOperation({ summary: '사용자 계정 삭제', description: '프론트 연동 가이드(/users/me) 호환 엔드포인트입니다.' })
+  @ApiOperation({ summary: '사용자 계정 삭제', description: '현재 로그인한 사용자의 계정을 삭제합니다.' })
   async deleteMe(@Req() req: any) {
     const user = req.user;
     await this.users.deleteByUserId(user.uuid || String(user.sub));
@@ -87,7 +87,7 @@ export class UsersController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Patch('me/password')
+  @Patch('current/password')
   @ApiBearerAuth()
   @ApiOperation({ summary: '비밀번호 변경', description: '현재 비밀번호 확인 후 새 비밀번호로 변경합니다.' })
   async changeMyPassword(@Req() req: any, @Body() dto: ChangePasswordDto) {

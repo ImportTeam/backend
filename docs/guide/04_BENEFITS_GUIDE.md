@@ -564,7 +564,6 @@ const getBenefitIcon = (type: string) => {
 ## 🔗 다음 단계
 
 1. [결제 기록 모듈](./06_PAYMENTS_GUIDE.md) - 결제 내역 조회
-2. [PortOne 연동 가이드](./05_PORTONE_INTEGRATION_GUIDE.md) - 본인인증 및 빌링키
 
 ---
 

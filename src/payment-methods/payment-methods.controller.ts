@@ -77,7 +77,7 @@ export class PaymentMethodsController {
       example1: {
         value: {
           alias: '내 신용카드',
-          cardToken: 'card_token_from_portone',
+          cardToken: 'card_token_from_provider',
           isPrimary: true
         }
       }

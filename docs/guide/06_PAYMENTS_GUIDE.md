@@ -424,8 +424,8 @@ CREATE TABLE payment_transactions (
   benefit_value DECIMAL(12,2),         -- 적용된 혜택금액
   benefit_desc VARCHAR(255),           -- 혜택 설명
   compared_at TIMESTAMP,               -- 비교 시간
-  portone_payment_id VARCHAR UNIQUE,   -- PortOne 결제 ID
-  portone_transaction_id VARCHAR,      -- PortOne 거래 ID
+  provider_payment_id VARCHAR UNIQUE,  -- 외부 결제 제공자 결제 ID
+  provider_transaction_id VARCHAR,     -- 외부 결제 제공자 거래 ID
   status VARCHAR(50) DEFAULT 'PENDING',-- PENDING, COMPLETED, FAILED
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
@@ -435,7 +435,7 @@ CREATE TABLE payment_transactions (
   
   INDEX idx_user_status (user_uuid, status),
   INDEX idx_user_created (user_uuid, created_at),
-  INDEX idx_portone_payment (portone_payment_id)
+  INDEX idx_provider_payment (provider_payment_id)
 );
 ```
 
@@ -511,8 +511,7 @@ function generateReceipt(transaction: any) {
 
 ## 🔗 다음 단계
 
-1. [결제 이력 조회 가이드](../PORTONE_V2_IMPLEMENTATION.md#payment-history) - 결제 내역 조회 및 통계
-2. [혜택 비교 모듈](./04_BENEFITS_GUIDE.md) - 결제 시 최적 수단 추천
+1. [혜택 비교 모듈](./04_BENEFITS_GUIDE.md) - 결제 시 최적 수단 추천
 
 ---
 

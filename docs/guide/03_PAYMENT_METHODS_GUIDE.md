@@ -537,7 +537,7 @@ CREATE TABLE payment_methods (
   cvv_hash VARCHAR(255),               -- 암호화된 CVV
   alias VARCHAR(50),                   -- 사용자 지정 별칭
   is_primary BOOLEAN DEFAULT false,    -- 기본 결제 수단
-  billing_key_id VARCHAR UNIQUE,       -- PortOne 빌링키 ID
+  billing_key_id VARCHAR UNIQUE,       -- (레거시) 외부 결제 제공자 빌링키 ID
   billing_key_status VARCHAR(50),      -- ISSUED, PENDING, DELETED
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
@@ -626,7 +626,6 @@ const isCardExpired = (year: number, month: number) => {
 
 1. [혜택 비교 모듈](./04_BENEFITS_GUIDE.md) - 결제 혜택 분석
 2. [결제 기록 모듈](./06_PAYMENTS_GUIDE.md) - 결제 내역 조회
-3. [PortOne 연동 가이드](./05_PORTONE_INTEGRATION_GUIDE.md) - 본인인증 및 빌링키
 
 ---
 

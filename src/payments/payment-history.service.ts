@@ -1,6 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PortOneService } from '../portone/portone.service';
 
 export interface PaymentHistoryFilter {
   startDate?: Date;
@@ -28,7 +27,6 @@ export class PaymentHistoryService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly portOneService: PortOneService,
   ) {}
 
   /**
@@ -118,7 +116,6 @@ export class PaymentHistoryService {
       return {
         items: transactions.map((tx) => ({
           id: tx.uuid,
-          portonePaymentId: tx.portone_payment_id,
           merchantName: tx.merchant_name,
           amount: tx.amount.toString(),
           currency: tx.currency,
@@ -183,35 +180,8 @@ export class PaymentHistoryService {
         throw new NotFoundException('본인의 결제 내역만 조회할 수 있습니다.');
       }
 
-      // PortOne에서 최신 상태 조회 (선택사항)
-      let portoneData: any = null;
-      if (transaction.portone_payment_id) {
-        try {
-          portoneData = await this.portOneService.getPayment(
-            transaction.portone_payment_id,
-          );
-
-          // DB 상태 동기화
-          if (portoneData?.payment?.status !== transaction.status) {
-            await this.prisma.payment_transactions.update({
-              where: { uuid: paymentId },
-              data: {
-                status: portoneData.payment?.status,
-                updated_at: new Date(),
-              },
-            });
-          }
-        } catch (error) {
-          this.logger.warn(
-            `Failed to fetch PortOne payment data: ${transaction.portone_payment_id}`,
-          );
-        }
-      }
-
       return {
         id: transaction.uuid,
-        portonePaymentId: transaction.portone_payment_id,
-        portoneTransactionId: transaction.portone_transaction_id,
         merchantName: transaction.merchant_name,
         amount: transaction.amount.toString(),
         currency: transaction.currency,
@@ -221,7 +191,6 @@ export class PaymentHistoryService {
         comparedAt: transaction.compared_at,
         createdAt: transaction.created_at,
         updatedAt: transaction.updated_at,
-        portoneData: portoneData?.payment || null,
       };
     } catch (error) {
       this.logger.error('Error fetching payment detail:', error);

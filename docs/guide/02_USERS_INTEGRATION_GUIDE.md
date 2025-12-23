@@ -16,7 +16,7 @@
 ### 1. 현재 사용자 정보 조회
 
 ```http
-GET /users/me
+GET /users/current
 Authorization: Bearer {access_token}
 
 Response 200 OK:
@@ -51,7 +51,7 @@ Response 200 OK:
 ### 2. 사용자 정보 수정
 
 ```http
-PATCH /users/me
+PATCH /users/current
 Authorization: Bearer {access_token}
 Content-Type: application/json
 
@@ -93,7 +93,7 @@ Response 200 OK:
 ### 3. 사용자 계정 삭제
 
 ```http
-DELETE /users/me
+DELETE /users/current
 Authorization: Bearer {access_token}
 
 Response 200 OK:
@@ -130,7 +130,7 @@ function UserProfile() {
   useEffect(() => {
     async function fetchUser() {
       try {
-        const response = await apiClient.get('/users/me');
+        const response = await apiClient.get('/users/current');
         setUser(response.data);
       } catch (error) {
         console.error('사용자 정보 조회 실패:', error);
@@ -191,7 +191,7 @@ function EditProfile() {
     setError(null);
 
     try {
-      const response = await apiClient.patch('/users/me', {
+      const response = await apiClient.patch('/users/current', {
         name: form.name || undefined,
         email: form.email || undefined,
       });
@@ -267,7 +267,7 @@ function DeleteAccount() {
     if (!confirmed) return;
 
     try {
-      await apiClient.delete('/users/me');
+      await apiClient.delete('/users/current');
 
       alert('계정이 삭제되었습니다.');
 
@@ -342,7 +342,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const updateUser = async (data: Partial<User>) => {
     try {
-      const response = await apiClient.patch('/users/me', data);
+      const response = await apiClient.patch('/users/current', data);
       const updatedUser = response.data.user;
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -470,7 +470,7 @@ const cachedUser = JSON.parse(localStorage.getItem('user') || '{}');
 setUser(cachedUser);
 
 // 백그라운드에서 서버에서 최신 정보 fetch
-apiClient.get('/users/me').then(res => {
+apiClient.get('/users/current').then(res => {
   localStorage.setItem('user', JSON.stringify(res.data));
   setUser(res.data);
 });
@@ -514,7 +514,7 @@ const getSocialProviderLabel = (provider: string) => {
 
 1. [결제 수단 모듈](./03_PAYMENT_METHODS_GUIDE.md) - 카드 등록 및 관리
 2. [혜택 비교 모듈](./04_BENEFITS_GUIDE.md) - 결제 혜택 분석
-3. [PortOne 연동 가이드](./05_PORTONE_INTEGRATION_GUIDE.md) - 본인인증 및 빌링키
+3. [결제 기록 모듈](./06_PAYMENTS_GUIDE.md) - 결제 거래 기록
 
 ---
 
