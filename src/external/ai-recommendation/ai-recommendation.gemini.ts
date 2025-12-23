@@ -116,8 +116,33 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       const json = extractFirstJsonObject(text);
       return json as T;
     } catch (err: any) {
-      const message = err?.response?.data ? JSON.stringify(err.response.data) : err?.message;
-      this.logger.error(`Gemini request failed: ${message}`);
+      const logLevel = (process.env.LOG_LEVEL ?? '').trim().toLowerCase();
+      const shouldIncludeResponseBody = ['debug', 'verbose', 'silly'].includes(
+        logLevel,
+      );
+
+      let message: string =
+        typeof err?.message === 'string' ? err.message : 'Unknown error';
+      const status = err?.response?.status;
+
+      if (shouldIncludeResponseBody && err?.response?.data) {
+        try {
+          message =
+            typeof err.response.data === 'string'
+              ? err.response.data
+              : JSON.stringify(err.response.data);
+        } catch {
+          // ignore
+        }
+      }
+
+      if (message.length > 2000) {
+        message = `${message.slice(0, 2000)}...(truncated)`;
+      }
+
+      this.logger.error(
+        `Gemini request failed: status=${String(status ?? 'unknown')} message=${message}`,
+      );
       throw new ServiceUnavailableException('AI 추천 서비스를 사용할 수 없습니다.');
     }
   }
@@ -141,7 +166,7 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       `  "highlights": string[]\n` +
       `}\n\n` +
       `입력(JSON):\n` +
-      `${JSON.stringify(req, null, 2)}`;
+      `${JSON.stringify(req)}`;
 
     const out = await this.generateJson<AiMonthlySavingsNarrativeResponse>(prompt);
 
@@ -166,7 +191,7 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       `  "reasonSummary": string\n` +
       `}\n\n` +
       `입력(JSON):\n` +
-      `${JSON.stringify(req, null, 2)}`;
+        `${JSON.stringify(req)}`;
 
     const out = await this.generateJson<AiBenefitRecommendationSummaryResponse>(prompt);
 
@@ -202,7 +227,7 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       `- score는 0~100 정수\n` +
       `- items는 최대 3개\n\n` +
       `입력(JSON):\n` +
-      `${JSON.stringify(req, null, 2)}`;
+        `${JSON.stringify(req)}`;
 
     const out = await this.generateJson<any>(prompt);
     const itemsRaw = Array.isArray(out?.items) ? out.items : [];
