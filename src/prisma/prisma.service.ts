@@ -24,8 +24,15 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   constructor() {
+    const enableQueryLog = !(process.env.PRISMA_LOG_QUERIES ?? 'true')
+      .trim()
+      .toLowerCase()
+      .startsWith('f');
+
     const logLevels: any[] = process.env.NODE_ENV === 'development'
-      ? ['query', 'info', 'warn', 'error']
+      ? enableQueryLog
+        ? ['query', 'info', 'warn', 'error']
+        : ['info', 'warn', 'error']
       : ['warn', 'error'];
 
     super({
@@ -44,7 +51,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     const isProd = env === 'production';
     const shouldFailFast = isProd || forceFailFast;
 
-    if (process.env.NODE_ENV === 'development') {
+    const enableQueryLog = !(process.env.PRISMA_LOG_QUERIES ?? 'true')
+      .trim()
+      .toLowerCase()
+      .startsWith('f');
+
+    if (process.env.NODE_ENV === 'development' && enableQueryLog) {
       const slowQueryMs = this.getSlowQueryThresholdMs();
       const includeQueryText = this.shouldIncludeSlowQueryText();
 
