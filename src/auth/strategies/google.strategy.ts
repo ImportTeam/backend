@@ -1,6 +1,6 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
-import { BadRequestException, HttpException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 function normalizeOAuthCallbackUrl(callbackUrl: string, provider: string): string {
@@ -31,7 +31,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const selectedCallbackURL = isProd ? (prodCallbackURL || devCallbackURL) : devCallbackURL;
     const callbackURL = normalizeOAuthCallbackUrl(selectedCallbackURL, 'google');
 
-    console.log(`[GoogleStrategy] Callback URL: ${callbackURL} (env=${nodeEnv || 'unknown'})`);
+    if (!isProd) {
+      const logger = new Logger(GoogleStrategy.name);
+      logger.log(`Callback URL: ${callbackURL} (env=${nodeEnv || 'unknown'})`);
+    }
 
     super({
       clientID: configService.get<string>('GOOGLE_CLIENT_ID'),

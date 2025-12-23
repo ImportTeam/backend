@@ -1,6 +1,6 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-kakao';
-import { BadRequestException, HttpException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 function normalizeOAuthCallbackUrl(callbackUrl: string, provider: string): string {
@@ -33,7 +33,10 @@ export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
 
     const clientSecret = configService.get<string>('KAKAO_CLIENT_SECRET');
 
-    console.log(`[KakaoStrategy] Callback URL: ${callbackURL} (env=${nodeEnv || 'unknown'})`);
+    if (!isProd) {
+      const logger = new Logger(KakaoStrategy.name);
+      logger.log(`Callback URL: ${callbackURL} (env=${nodeEnv || 'unknown'})`);
+    }
 
     const config: any = {
       clientID: configService.get<string>('KAKAO_CLIENT_ID'),

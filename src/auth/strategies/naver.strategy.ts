@@ -1,6 +1,6 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-naver';
-import { BadRequestException, HttpException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 function normalizeOAuthCallbackUrl(callbackUrl: string, provider: string): string {
@@ -31,7 +31,10 @@ export class NaverStrategy extends PassportStrategy(Strategy, 'naver') {
     const selectedCallbackURL = isProd ? (prodCallbackURL || devCallbackURL) : devCallbackURL;
     const callbackURL = normalizeOAuthCallbackUrl(selectedCallbackURL, 'naver');
 
-    console.log(`[NaverStrategy] Callback URL: ${callbackURL} (env=${nodeEnv || 'unknown'})`);
+    if (!isProd) {
+      const logger = new Logger(NaverStrategy.name);
+      logger.log(`Callback URL: ${callbackURL} (env=${nodeEnv || 'unknown'})`);
+    }
 
     super({
       clientID: configService.get<string>('NAVER_CLIENT_ID'),

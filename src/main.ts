@@ -10,6 +10,8 @@ import type { NextFunction, Request, Response } from 'express';
 import { spawnSync } from 'child_process';
 import { join } from 'path';
 
+const bootstrapLogger = new CustomLoggerService();
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -34,7 +36,9 @@ async function runSeedOnStartupIfEnabled(): Promise<void> {
   if (!shouldAutoSeedOnStartup()) return;
 
   const seedPath = join(process.cwd(), 'prisma', 'seed.ts');
-  console.log(`[Bootstrap] AUTO_DB_SEED enabled. Running seed: ${seedPath}`);
+  bootstrapLogger.log(
+    `[Bootstrap] AUTO_DB_SEED enabled. Running seed: ${seedPath}`,
+  );
 
   const requireDbSeed = (process.env.REQUIRE_DB_SEED ?? '')
     .trim()
@@ -67,14 +71,14 @@ async function runSeedOnStartupIfEnabled(): Promise<void> {
           `DB seed failed on startup (exit code: ${result.status})`,
         );
       }
-      console.warn(
+      bootstrapLogger.warn(
         `[Bootstrap] DB seed failed on startup (exit code: ${result.status}). ` +
           `Continuing without seed. (Set REQUIRE_DB_SEED=true to fail hard)`,
       );
       return;
     }
 
-    console.warn(
+    bootstrapLogger.warn(
       `[Bootstrap] DB seed failed (attempt ${attempt}/${maxAttempts}). Retrying in ${retryDelayMs}ms...`,
     );
     await sleep(retryDelayMs);
@@ -148,7 +152,7 @@ function isAllowedCorsOrigin(
 
 async function bootstrap(): Promise<void> {
   try {
-    console.log('[Bootstrap] Starting NestJS application...');
+    bootstrapLogger.log('[Bootstrap] Starting NestJS application...');
 
     await runSeedOnStartupIfEnabled();
 
@@ -160,7 +164,7 @@ async function bootstrap(): Promise<void> {
         : ['error', 'warn', 'log'],
     });
 
-    console.log('[Bootstrap] AppModule created');
+    bootstrapLogger.log('[Bootstrap] AppModule created');
 
     // Prevent cross-origin isolation headers from blocking external resources (e.g., vercel.live scripts)
     // in deployed environments.
@@ -199,9 +203,9 @@ async function bootstrap(): Promise<void> {
       next();
     });
 
-    console.log('[Bootstrap] Logger initialized');
+    logger.log('[Bootstrap] Logger initialized');
 
-    console.log(
+    logger.log(
       `[Bootstrap] NODE_ENV: ${process.env.NODE_ENV}, isDevelopment: ${isDevelopment}`,
     );
 
@@ -242,12 +246,12 @@ async function bootstrap(): Promise<void> {
     });
     app.setGlobalPrefix('api');
 
-    console.log('[Bootstrap] Applying Global Pipes...');
+    logger.log('[Bootstrap] Applying Global Pipes...');
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, transform: true }),
     );
 
-    console.log('[Bootstrap] Setting up Swagger...');
+    logger.log('[Bootstrap] Setting up Swagger...');
     const config = new DocumentBuilder()
       .setTitle('PicSel API')
       .setDescription(
@@ -284,21 +288,28 @@ async function bootstrap(): Promise<void> {
     SwaggerModule.setup('swagger', app, doc);
 
     const port = process.env.PORT || 3000;
-    console.log(`[Bootstrap] Starting server on port ${port}...`);
+    logger.log(`[Bootstrap] Starting server on port ${port}...`);
 
     await app.listen(port, '0.0.0.0');
-    console.log(`✅ Application is running on port ${port}`);
+    logger.log(`✅ Application is running on port ${port}`);
   } catch (error) {
-    console.error('[Bootstrap] Fatal error during initialization:', error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    bootstrapLogger.error(
+      '[Bootstrap] Fatal error during initialization',
+      stack,
+    );
     if (error instanceof Error) {
-      console.error('[Bootstrap] Error message:', error.message);
-      console.error('[Bootstrap] Error stack:', error.stack);
+      bootstrapLogger.error(`[Bootstrap] Error message: ${error.message}`);
+      if (error.stack) {
+        bootstrapLogger.error(`[Bootstrap] Error stack: ${error.stack}`);
+      }
     }
     process.exit(1);
   }
 }
 
 bootstrap().catch((err) => {
-  console.error('Failed to start application:', err);
+  const stack = err instanceof Error ? err.stack : undefined;
+  bootstrapLogger.error('Failed to start application', stack);
   process.exit(1);
 });
