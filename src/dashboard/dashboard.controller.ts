@@ -23,7 +23,7 @@ export class DashboardController {
   /**
    * curl 예시(로컬)
    * - Bearer 토큰이 필요합니다.
-   * curl -X GET "http://localhost:3000/api/dashboard/metrics/savings" -H "Authorization: Bearer <JWT>"
+    * curl -X GET "http://localhost:3000/api/dashboard/metrics/savings" -H "Authorization: Bearer <JWT>"
    */
   @Get('metrics/savings')
   @ApiOperation({ summary: '이번 달 절약 금액', description: '이번 달 절약 금액(원화 표시)과 전년 동월 대비 절약 금액/증감 안내를 반환합니다.' })
@@ -36,9 +36,9 @@ export class DashboardController {
 
   /**
    * curl 예시(로컬)
-   * curl -X GET "http://localhost:3000/api/dashboard/metrics/topmerchant" -H "Authorization: Bearer <JWT>"
+   * curl -X GET "http://localhost:3000/api/dashboard/metrics/top-merchant" -H "Authorization: Bearer <JWT>"
    */
-  @Get('metrics/topmerchant')
+  @Get('metrics/top-merchant')
   @ApiOperation({
     summary: '가장 많이 쓴 쇼핑몰(Top1)',
     description: '최근(이번 달 우선, 없으면 최근 6개월) 지출 합계가 가장 높은 쇼핑몰 1곳을 반환합니다.',
@@ -52,9 +52,9 @@ export class DashboardController {
 
   /**
    * curl 예시(로컬)
-   * curl -X GET "http://localhost:3000/api/dashboard/metrics/toppaymentmethod" -H "Authorization: Bearer <JWT>"
+   * curl -X GET "http://localhost:3000/api/dashboard/metrics/top-payment-method" -H "Authorization: Bearer <JWT>"
    */
-  @Get('metrics/toppaymentmethod')
+  @Get('metrics/top-payment-method')
   @ApiOperation({
     summary: '최다 사용 결제수단(Top1)',
     description: '연결된 결제수단 중 이번 달 사용 금액 기준으로 Top1을 반환합니다. (데이터가 없으면 최근 6개월 기준으로 보정)',
@@ -68,9 +68,9 @@ export class DashboardController {
 
   /**
    * curl 예시(로컬)
-   * curl -X GET "http://localhost:3000/api/dashboard/metrics/aibenefitsummary" -H "Authorization: Bearer <JWT>"
+   * curl -X GET "http://localhost:3000/api/dashboard/metrics/ai-benefit-summary" -H "Authorization: Bearer <JWT>"
    */
-  @Get('metrics/aibenefitsummary')
+  @Get('metrics/ai-benefit-summary')
   @ApiOperation({
     summary: 'AI 추천 혜택(요약)',
     description: '최근 6개월 소비 요약 + 등록 결제수단 + 혜택(크롤링) 데이터를 종합해 AI 추천 결과/사유를 반환합니다.',
@@ -84,9 +84,9 @@ export class DashboardController {
 
   /**
    * curl 예시(로컬)
-   * curl -X GET "http://localhost:3000/api/dashboard/charts/monthlysavings" -H "Authorization: Bearer <JWT>"
+   * curl -X GET "http://localhost:3000/api/dashboard/charts/monthly-savings" -H "Authorization: Bearer <JWT>"
    */
-  @Get('charts/monthlysavings')
+  @Get('charts/monthly-savings')
   @ApiOperation({
     summary: '월간 절약 변화 추이(최근 6개월)',
     description: '최근 6개월의 월간 지출/혜택(절약) 합계를 JSON으로 반환합니다. 절약 지표 계산은 서비스 함수로 분리되어 있습니다.',
@@ -100,11 +100,11 @@ export class DashboardController {
 
   /**
    * curl 예시(로컬)
-   * curl -X GET "http://localhost:3000/api/dashboard/charts/recommendedpaymentmethods" -H "Authorization: Bearer <JWT>"
+   * curl -X GET "http://localhost:3000/api/dashboard/metrics/ai-recommended-payment-methods" -H "Authorization: Bearer <JWT>"
    */
-  @Get('charts/recommendedpaymentmethods')
+  @Get('metrics/ai-recommended-payment-methods')
   @ApiOperation({
-    summary: '추천 결제수단 Top3',
+    summary: 'AI 추천 결제수단 Top3',
     description: '혜택 크롤링 데이터 + 소비 패턴을 종합해 AI가 추천하는 결제수단 Top3를 반환합니다.',
   })
   @ApiResponse({ status: 200, description: '조회 성공', type: RecommendedPaymentMethodsTop3ResponseDto })
@@ -116,9 +116,9 @@ export class DashboardController {
 
   /**
    * curl 예시(로컬)
-   * curl -X GET "http://localhost:3000/api/dashboard/transactions/recentbysite?page=1&size=10" -H "Authorization: Bearer <JWT>"
+   * curl -X GET "http://localhost:3000/api/dashboard/transactions/recent-by-site?page=1&size=10" -H "Authorization: Bearer <JWT>"
    */
-  @Get('transactions/recentbysite')
+  @Get('transactions/recent-by-site')
   @ApiOperation({
     summary: '최근 사이트별 결제내역',
     description: '사이트명/결제일/결제수단/할인·적립 금액을 포함한 최근 결제 내역을 페이지 단위로 반환합니다.',

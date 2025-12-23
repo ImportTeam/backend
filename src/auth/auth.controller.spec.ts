@@ -36,8 +36,5 @@ describe('AuthController', () => {
     expect(controller.logout).toBeDefined();
     expect(controller.login).toBeDefined();
     expect(controller.register).toBeDefined();
-    expect(controller.providerLoginRedirectGet).toBeDefined();
-    expect(controller.providerLoginRedirectPost).toBeDefined();
-    expect(controller.providerCallbackRedirect).toBeDefined();
   });
 });

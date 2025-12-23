@@ -1,13 +1,11 @@
-import { Controller, Post, Get, Req, UseGuards, Body, Param, Res } from '@nestjs/common';
+import { Controller, Post, Get, Req, UseGuards, Body } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBody,
-  ApiParam,
   ApiExtraModels,
-  ApiExcludeEndpoint,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
@@ -65,42 +63,8 @@ export class AuthController {
     return this.authService.logout(body.refresh_token || '');
   }
 
-  @Get(':provider/login')
-  @ApiParam({ name: 'provider', required: true, description: '소셜 로그인 제공자', schema: { type: 'string', enum: ['google', 'kakao', 'naver'] } })
-  @ApiOperation({ summary: '소셜 로그인 시작(별칭)', description: 'GET /auth/:provider/login — 해당 제공자의 로그인 플로우로 리다이렉트합니다.' })
-  async providerLoginRedirectGet(@Param('provider') provider: string, @Res() res: any) {
-    const p = (provider || '').toLowerCase();
-    if (!['google', 'kakao', 'naver'].includes(p)) {
-      return res.status(400).json({ error: 'Invalid provider' });
-    }
-    return res.redirect(`/api/auth/${p}`);
-  }
-
-  @Post(':provider/login')
-  @ApiParam({ name: 'provider', required: true, description: '소셜 로그인 제공자', schema: { type: 'string', enum: ['google', 'kakao', 'naver'] } })
-  @ApiOperation({ summary: '소셜 로그인 시작(POST)', description: 'POST로 시작해야 하는 클라이언트를 위한 별칭. 해당 제공자의 로그인 플로우로 리다이렉트합니다.' })
-  async providerLoginRedirectPost(@Param('provider') provider: string, @Res() res: any) {
-    const p = (provider || '').toLowerCase();
-    if (!['google', 'kakao', 'naver'].includes(p)) {
-      return res.status(400).json({ error: 'Invalid provider' });
-    }
-    return res.redirect(`/api/auth/${p}`);
-  }
-
-  @Get(':provider/callback/redirect')
-  @ApiParam({ name: 'provider', required: true, description: '소셜 로그인 제공자', schema: { type: 'string', enum: ['google', 'kakao', 'naver'] } })
-  @ApiOperation({ summary: '소셜 로그인 콜백(별칭)', description: 'GET /auth/:provider/callback/redirect — provider-specific 콜백으로 리다이렉트합니다.' })
-  async providerCallbackRedirect(@Param('provider') provider: string, @Res() res: any) {
-    const p = (provider || '').toLowerCase();
-    if (!['google', 'kakao', 'naver'].includes(p)) {
-      return res.status(400).json({ error: 'Invalid provider' });
-    }
-    return res.redirect(`/api/auth/${p}/callback`);
-  }
-
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  @ApiExcludeEndpoint()
   @ApiOperation({ 
     summary: '소셜 로그인 시작 (Google)', 
     description: '사용자가 Google 계정으로 로그인할 때 사용합니다. 프런트엔드는 이 엔드포인트로 이동하여 Google 인증 페이지로 리다이렉트됩니다.' 
@@ -111,7 +75,6 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  @ApiExcludeEndpoint()
   @ApiOperation({ 
     summary: '소셜 로그인 콜백 (Google)', 
     description: 'Google 인증을 완료한 후 호출됩니다. 성공 시 사용자 세션을 생성하고 액세스/리프레시 토큰을 반환합니다. 실패 시 오류를 반환합니다.' 
@@ -124,7 +87,6 @@ export class AuthController {
 
   @Get('kakao')
   @UseGuards(AuthGuard('kakao'))
-  @ApiExcludeEndpoint()
   @ApiOperation({ summary: '소셜 로그인 시작 (Kakao)', description: '카카오 계정으로 로그인 시 사용합니다.' })
   @ApiResponse({ status: 302, description: 'Kakao 로그인 페이지로 리다이렉트' })
   async kakaoLogin() {
@@ -133,7 +95,6 @@ export class AuthController {
 
   @Get('kakao/callback')
   @UseGuards(AuthGuard('kakao'))
-  @ApiExcludeEndpoint()
   @ApiOperation({ summary: '소셜 로그인 콜백 (Kakao)', description: '카카오 인증 완료 후 토큰을 발급하고 세션을 생성합니다.' })
   @ApiResponse({ status: 200, description: '소셜 로그인 성공, JWT 토큰 반환', type: LoginResponseDto })
   @ApiResponse({ status: 400, description: '이메일 정보가 제공되지 않음', type: ErrorResponseDto })
@@ -143,7 +104,6 @@ export class AuthController {
 
   @Get('naver')
   @UseGuards(AuthGuard('naver'))
-  @ApiExcludeEndpoint()
   @ApiOperation({ summary: '소셜 로그인 시작 (Naver)', description: '네이버 계정으로 로그인 시 사용합니다.' })
   @ApiResponse({ status: 302, description: 'Naver 로그인 페이지로 리다이렉트' })
   async naverLogin() {
@@ -152,7 +112,6 @@ export class AuthController {
 
   @Get('naver/callback')
   @UseGuards(AuthGuard('naver'))
-  @ApiExcludeEndpoint()
   @ApiOperation({ summary: '소셜 로그인 콜백 (Naver)', description: '네이버 인증 완료 후 토큰을 발급하고 세션을 생성합니다.' })
   @ApiResponse({ status: 200, description: '소셜 로그인 성공, JWT 토큰 반환', type: LoginResponseDto })
   @ApiResponse({ status: 400, description: '이메일 정보가 제공되지 않음', type: ErrorResponseDto })

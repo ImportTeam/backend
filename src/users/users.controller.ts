@@ -13,7 +13,6 @@ import {
   UnauthorizedErrorDto,
 } from '../common/dto/swagger-responses.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUserResponseDto } from './dto/current-user-response.dto';
 import { UpdateCurrentUserDto } from './dto/update-current-user.dto';
 import { UserSessionDto } from './dto/user-session.dto';
 import { MeResponseDto } from './dto/me-response.dto';
@@ -24,7 +23,6 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 @ApiExtraModels(
   ErrorResponseDto,
   UnauthorizedErrorDto,
-  CurrentUserResponseDto,
   MeResponseDto,
   UpdateMeResponseDto,
   UserSessionDto,
@@ -96,86 +94,6 @@ export class UsersController {
     const user = req.user;
     await this.users.changePassword(BigInt(user.sub), dto.currentPassword, dto.newPassword);
     return { message: '비밀번호가 변경되었습니다.' };
-  }
-
-  @UseGuards(AuthGuard('jwt'))
-  @Delete('current')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '사용자 탈퇴', description: '현재 로그인한 사용자의 계정을 삭제합니다.' })
-  async deleteCurrentUser(@Req() req: any) {
-    const user = req.user;
-    await this.users.deleteByUserId(user.uuid || String(user.sub));
-    return { message: 'User deleted' };
-  }
-
-  @UseGuards(AuthGuard('jwt'))
-  @Get('current')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '내 정보 조회', description: '현재 로그인한 사용자의 기본 정보/설정을 조회합니다.' })
-  @ApiResponse({ status: 200, type: CurrentUserResponseDto })
-  async getCurrentUser(@Req() req: any): Promise<CurrentUserResponseDto> {
-    const user = req.user;
-    const row = await this.users.getCurrentUser(BigInt(user.sub));
-
-    return {
-      id: row.seq.toString(),
-      uuid: row.uuid,
-      email: row.email,
-      name: row.name,
-      socialProvider: row.social_provider,
-      isVerified: row.is_verified,
-      verifiedAt: row.verified_at?.toISOString?.() ?? (row.verified_at as any) ?? null,
-      createdAt: row.created_at.toISOString?.() ?? (row.created_at as any),
-      settings: row.user_settings
-        ? {
-            darkMode: row.user_settings.dark_mode,
-            notificationEnabled: row.user_settings.notification_enabled,
-            compareMode: row.user_settings.compare_mode,
-            currencyPreference: row.user_settings.currency_preference,
-            updatedAt:
-              row.user_settings.updated_at?.toISOString?.() ??
-              (row.user_settings.updated_at as any),
-          }
-        : null,
-    };
-  }
-
-  @UseGuards(AuthGuard('jwt'))
-  @Patch('current')
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: '내 정보 수정',
-    description: '이름 및 사용자 설정(darkMode/notificationEnabled/compareMode/currencyPreference)을 수정합니다.',
-  })
-  @ApiResponse({ status: 200, type: CurrentUserResponseDto })
-  async updateCurrentUser(
-    @Req() req: any,
-    @Body() dto: UpdateCurrentUserDto,
-  ): Promise<CurrentUserResponseDto> {
-    const user = req.user;
-    const row = await this.users.updateCurrentUser(BigInt(user.sub), dto);
-
-    return {
-      id: row.seq.toString(),
-      uuid: row.uuid,
-      email: row.email,
-      name: row.name,
-      socialProvider: row.social_provider,
-      isVerified: row.is_verified,
-      verifiedAt: row.verified_at?.toISOString?.() ?? (row.verified_at as any) ?? null,
-      createdAt: row.created_at.toISOString?.() ?? (row.created_at as any),
-      settings: row.user_settings
-        ? {
-            darkMode: row.user_settings.dark_mode,
-            notificationEnabled: row.user_settings.notification_enabled,
-            compareMode: row.user_settings.compare_mode,
-            currencyPreference: row.user_settings.currency_preference,
-            updatedAt:
-              row.user_settings.updated_at?.toISOString?.() ??
-              (row.user_settings.updated_at as any),
-          }
-        : null,
-    };
   }
 
   @UseGuards(AuthGuard('jwt'))

@@ -183,10 +183,6 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
   }
 
   async getRecommendedPaymentMethodsTop3(req: AiPaymentMethodTop3Request): Promise<AiPaymentMethodTop3Response> {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new ServiceUnavailableException('AI 추천 서비스를 사용할 수 없습니다.');
-    }
-
     const prompt =
       `너는 결제수단 추천 AI다. 사용자의 소비 패턴(카테고리/상위 가맹점)과 혜택(크롤링) 요약을 참고하여, 사용자가 보유한 결제수단 중 Top3를 추천해라.\n` +
       `각 추천에는 어떤 할인/적립인지와 어떻게 적용되는지(간략)를 reasonSummary에 포함해라.\n` +
