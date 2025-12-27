@@ -355,14 +355,21 @@ export class DashboardService {
       };
     });
 
-    const ai = await this.aiClient.getMonthlySavingsNarrative({
-      months: items.map((m) => ({
-        month: m.month,
-        totalSpent: m.totalSpent,
-        totalBenefit: m.totalBenefit,
-        savingsAmount: m.savingsAmount,
-      })),
-    });
+    let ai = { summary: '', highlights: [] as string[] };
+    try {
+      ai = await this.aiClient.getMonthlySavingsNarrative({
+        months: items.map((m) => ({
+          month: m.month,
+          totalSpent: m.totalSpent,
+          totalBenefit: m.totalBenefit,
+          savingsAmount: m.savingsAmount,
+        })),
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        `AI monthly savings narrative unavailable: ${err?.message ?? err}`,
+      );
+    }
 
     return { data: items, ai };
   }
@@ -430,35 +437,49 @@ export class DashboardService {
       topCategories,
     );
 
-    const res = await this.aiClient.getBenefitRecommendationSummary({
-      userUuid,
-      dashboardContext: {
-        monthlySavingsTrend: (monthlySavingsTrend || []).map((m: any) => ({
-          month: m.month,
-          totalSpent: m.totalSpent,
-          totalBenefit: m.totalBenefit,
-          savingsAmount: m.savingsAmount,
+    try {
+      const res = await this.aiClient.getBenefitRecommendationSummary({
+        userUuid,
+        dashboardContext: {
+          monthlySavingsTrend: (monthlySavingsTrend || []).map((m: any) => ({
+            month: m.month,
+            totalSpent: m.totalSpent,
+            totalBenefit: m.totalBenefit,
+            savingsAmount: m.savingsAmount,
+          })),
+          topMerchant: topMerchant
+            ? { merchantName: topMerchant.merchantName, totalSpent: topMerchant.totalSpent }
+            : null,
+          topPaymentMethod: topPaymentMethod
+            ? {
+                paymentMethodName: topPaymentMethod.paymentMethodName,
+                thisMonthTotalAmount: topPaymentMethod.thisMonthTotalAmount,
+              }
+            : null,
+        },
+        recentSixMonthsSummary: {
+          totalSpent: summary.totalSpent,
+          totalBenefit: summary.totalBenefit,
+          byCategory: summary.byCategory,
+        },
+        paymentMethods: paymentMethods.map((pm) => ({
+          seq: pm.seq,
+          providerName: pm.provider_name,
+          alias: pm.alias,
         })),
-        topMerchant: topMerchant
-          ? { merchantName: topMerchant.merchantName, totalSpent: topMerchant.totalSpent }
-          : null,
-        topPaymentMethod: topPaymentMethod
-          ? {
-              paymentMethodName: topPaymentMethod.paymentMethodName,
-              thisMonthTotalAmount: topPaymentMethod.thisMonthTotalAmount,
-            }
-          : null,
-      },
-      recentSixMonthsSummary: {
-        totalSpent: summary.totalSpent,
-        totalBenefit: summary.totalBenefit,
-        byCategory: summary.byCategory,
-      },
-      paymentMethods: paymentMethods.map((pm) => ({ seq: pm.seq, providerName: pm.provider_name, alias: pm.alias })),
-      benefitOffersSummary,
-    });
+        benefitOffersSummary,
+      });
 
-    return res;
+      return res;
+    } catch (err: any) {
+      this.logger.warn(
+        `AI benefit summary unavailable: ${err?.message ?? err}`,
+      );
+      return {
+        recommendation: '',
+        reasonSummary: '',
+      };
+    }
   }
 
   async getRecommendedPaymentMethodsTop3(userUuid: string) {
@@ -480,18 +501,29 @@ export class DashboardService {
       offerCountByProvider.set(o.provider_name, (offerCountByProvider.get(o.provider_name) || 0) + 1);
     }
 
-    const aiTop3 = await this.aiClient.getRecommendedPaymentMethodsTop3({
-      userUuid,
-      recentSixMonthsSummary: {
-        topMerchants: [],
-        byCategory: summary.byCategory,
-      },
-      paymentMethods: paymentMethods.map((pm) => ({ seq: pm.seq, providerName: pm.provider_name, alias: pm.alias })),
-      benefitOffersSummary: await this.buildBenefitOffersSummary(
-        paymentMethods.map((pm) => pm.provider_name),
-        summary.byCategory.slice(0, 3).map((c) => c.category),
-      ),
-    });
+    let aiTop3 = { items: [] as Array<{ paymentMethodSeq: bigint; score: number; reasonSummary: string }> };
+    try {
+      aiTop3 = await this.aiClient.getRecommendedPaymentMethodsTop3({
+        userUuid,
+        recentSixMonthsSummary: {
+          topMerchants: [],
+          byCategory: summary.byCategory,
+        },
+        paymentMethods: paymentMethods.map((pm) => ({
+          seq: pm.seq,
+          providerName: pm.provider_name,
+          alias: pm.alias,
+        })),
+        benefitOffersSummary: await this.buildBenefitOffersSummary(
+          paymentMethods.map((pm) => pm.provider_name),
+          summary.byCategory.slice(0, 3).map((c) => c.category),
+        ),
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        `AI payment method top3 unavailable: ${err?.message ?? err}`,
+      );
+    }
 
     const methodNameBySeq = new Map<string, string>();
     for (const pm of paymentMethods) {

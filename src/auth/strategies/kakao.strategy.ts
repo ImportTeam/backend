@@ -2,6 +2,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-kakao';
 import { BadRequestException, HttpException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { buildOAuthStateFromHttpRequest } from '../guards/oauth-state.util';
 
 function normalizeOAuthCallbackUrl(callbackUrl: string, provider: string): string {
   try {
@@ -49,6 +50,11 @@ export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
     }
 
     super(config);
+  }
+
+  authenticate(req: any, options: any = {}): void {
+    const state = buildOAuthStateFromHttpRequest(req);
+    return (Strategy as any).prototype.authenticate.call(this, req, { ...options, state });
   }
 
   async validate(accessToken: string, refreshToken: string, profile: any, done: any) {

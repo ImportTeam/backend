@@ -98,6 +98,7 @@ function normalizeCorsOrigin(value: string): string | null {
 function getAllowedCorsOrigins(): string[] {
   const raw = process.env.CORS_ORIGINS ?? process.env.FRONTEND_URL;
   const defaults = [
+    'https://picsel.vercel.app',
     'https://picsel.kr',
     'https://www.picsel.kr',
     'https://picsel.kro.kr',

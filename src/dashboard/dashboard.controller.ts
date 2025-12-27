@@ -51,6 +51,22 @@ export class DashboardController {
   }
 
   /**
+   * 프론트 호환용 alias
+   * - 일부 클라이언트가 `top-merchant` 대신 `topmerchant`(하이픈 없음)로 호출합니다.
+   */
+  @Get('metrics/topmerchant')
+  @ApiOperation({
+    summary: '가장 많이 쓴 쇼핑몰(Top1) - alias',
+    description: '클라이언트 호환을 위한 alias 엔드포인트입니다. 응답 스키마는 top-merchant와 동일합니다.',
+  })
+  @ApiResponse({ status: 200, description: '조회 성공', type: TopMerchantMetricResponseDto })
+  @ApiResponse({ status: 401, description: '인증 실패', type: ErrorResponseDto })
+  async getTopMerchantAlias(@Req() req: any) {
+    const userUuid = req.user.uuid;
+    return { data: await this.svc.getTopMerchant(userUuid) };
+  }
+
+  /**
    * curl 예시(로컬)
    * curl -X GET "http://localhost:3000/api/dashboard/metrics/top-paymethod" -H "Authorization: Bearer <JWT>"
    */

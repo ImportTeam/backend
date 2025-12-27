@@ -2,6 +2,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-naver';
 import { BadRequestException, HttpException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { buildOAuthStateFromHttpRequest } from '../guards/oauth-state.util';
 
 function normalizeOAuthCallbackUrl(callbackUrl: string, provider: string): string {
   try {
@@ -42,6 +43,11 @@ export class NaverStrategy extends PassportStrategy(Strategy, 'naver') {
       callbackURL: callbackURL,
       scope: ['profile', 'email'],
     });
+  }
+
+  authenticate(req: any, options: any = {}): void {
+    const state = buildOAuthStateFromHttpRequest(req);
+    return (Strategy as any).prototype.authenticate.call(this, req, { ...options, state });
   }
 
   async validate(accessToken: string, refreshToken: string, profile: any, done: any): Promise<any> {
