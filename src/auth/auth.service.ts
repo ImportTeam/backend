@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   BadRequestException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
@@ -40,6 +41,8 @@ function isPrismaUniqueConstraintError(error: unknown): boolean {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -49,12 +52,16 @@ export class AuthService {
     const { email, password } = loginDto;
     const user = await this.usersService.findByEmail(email);
     if (!user) {
+      this.logger.warn(`[Login] user not found (email=${String(email)})`);
       throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
     }
 
     // Social-only accounts may not have a password hash.
     // Also, bcryptjs can throw if hash format is invalid/empty.
     if (!user.password_hash) {
+      this.logger.warn(
+        `[Login] social-only or missing password_hash (email=${String(email)}, userSeq=${user.seq?.toString?.() ?? String(user.seq)})`,
+      );
       throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
     }
 
@@ -65,6 +72,9 @@ export class AuthService {
       isPasswordValid = false;
     }
     if (!isPasswordValid) {
+      this.logger.warn(
+        `[Login] password mismatch (email=${String(email)}, userSeq=${user.seq?.toString?.() ?? String(user.seq)})`,
+      );
       throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
     }
 

@@ -20,17 +20,22 @@ function isEmailUniqueConstraintError(error: unknown): boolean {
   return false;
 }
 
+function normalizeEmail(email: string): string {
+  return (email ?? '').trim().toLowerCase();
+}
+
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateUserDto) {
+    const email = normalizeEmail(dto.email);
     const password_hash = await bcrypt.hash(dto.password, 10);
     try {
       return await this.prisma.users.create({
         data: {
           uuid: randomUUID(),
-          email: dto.email,
+          email,
           password_hash,
           social_provider: 'NONE',
           name: dto.name,
@@ -45,7 +50,9 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
-    return this.prisma.users.findUnique({ where: { email } });
+    const normalized = normalizeEmail(email);
+    if (!normalized) return null;
+    return this.prisma.users.findUnique({ where: { email: normalized } });
   }
 
   async findBySeq(seq: bigint) {
@@ -147,10 +154,11 @@ export class UsersService {
     provider: string;
     providerId: string;
   }) {
+    const email = normalizeEmail(data.email);
     return this.prisma.users.create({
       data: {
         uuid: randomUUID(),
-        email: data.email,
+        email,
         name: data.name,
         social_provider: data.provider.toUpperCase(),
         social_id: data.providerId,
@@ -160,10 +168,11 @@ export class UsersService {
   }
 
   async linkSocialAccountByEmail(email: string, provider: string, providerId: string) {
-    const user = await this.findByEmail(email);
+    const normalized = normalizeEmail(email);
+    const user = await this.findByEmail(normalized);
     if (!user) return null;
     return this.prisma.users.update({
-      where: { email },
+      where: { email: normalized },
       data: {
         social_provider: provider.toUpperCase(),
         social_id: providerId,
@@ -190,10 +199,11 @@ export class UsersService {
   }
 
   async updatePassword(email: string, newPassword: string) {
-    const user = await this.findByEmail(email);
+    const normalized = normalizeEmail(email);
+    const user = await this.findByEmail(normalized);
     if (!user) throw new NotFoundException('해당 이메일의 사용자를 찾을 수 없습니다.');
     const password_hash = await bcrypt.hash(newPassword, 10);
-    return this.prisma.users.update({ where: { email }, data: { password_hash } });
+    return this.prisma.users.update({ where: { email: normalized }, data: { password_hash } });
   }
 
   async unlinkSocialProvider(userSeq: bigint | number, provider: string) {
