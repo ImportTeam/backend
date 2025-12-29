@@ -4,6 +4,13 @@ export class CategorySpendingItemDto {
   @ApiProperty({ example: '쇼핑', description: '카테고리 라벨(한국어)' })
   label: string;
 
+  @ApiProperty({
+    example: '쇼핑',
+    description: '차트 호환 별칭 키(=label)',
+    required: false,
+  })
+  name?: string;
+
   @ApiProperty({ example: 1250000, description: '카테고리 합산 지출 금액(원)' })
   value: number;
 

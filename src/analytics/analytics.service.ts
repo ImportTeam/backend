@@ -79,6 +79,7 @@ export class AnalyticsService {
     const data = [...totals.entries()]
       .map(([label, value]) => ({
         label,
+        name: label,
         value,
         ratioPercent: totalValue > 0 ? Math.round((value / totalValue) * 10000) / 100 : 0,
       }))
@@ -119,6 +120,9 @@ export class AnalyticsService {
     const data = aggs.map((agg, idx) => ({
       month: monthRanges[idx].label,
       totalSpent: this.toNumber(agg._sum.amount ?? 0),
+      name: monthRanges[idx].label,
+      spent: this.toNumber(agg._sum.amount ?? 0),
+      value: this.toNumber(agg._sum.amount ?? 0),
     }));
 
     return { data };
