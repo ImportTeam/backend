@@ -6,6 +6,7 @@ import {
   Req,
   Res,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
@@ -151,16 +152,43 @@ export class AuthController {
   @ApiOperation({ summary: '리프레시 토큰으로 액세스 토큰 재발급' })
   @ApiBody({ schema: { properties: { refresh_token: { type: 'string' } } } })
   @ApiResponse({ status: 200, description: '토큰 재발급 성공' })
-  async refresh(@Body() body: { refresh_token: string }): Promise<unknown> {
-    return this.authService.refreshTokens(body.refresh_token);
+  async refresh(
+    @Req() req: Request,
+    @Body() body?: { refresh_token?: string; refreshToken?: string },
+  ): Promise<unknown> {
+    const refreshToken =
+      body?.refresh_token ??
+      body?.refreshToken ??
+      // cookie-parser가 붙어있지 않은 환경에서도 안전하게 동작
+      (req as any)?.cookies?.refresh_token ??
+      (req as any)?.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token required');
+    }
+
+    return this.authService.refreshTokens(refreshToken);
   }
 
   @Post('logout')
   @ApiOperation({ summary: '로그아웃 (세션 무효화)' })
   @ApiBody({ schema: { properties: { refresh_token: { type: 'string' } } } })
   @ApiResponse({ status: 200, description: '로그아웃 성공' })
-  async logout(@Body() body: { refresh_token?: string }): Promise<unknown> {
-    return this.authService.logout(body.refresh_token || '');
+  async logout(
+    @Req() req: Request,
+    @Body() body?: { refresh_token?: string; refreshToken?: string },
+  ): Promise<unknown> {
+    const refreshToken =
+      body?.refresh_token ??
+      body?.refreshToken ??
+      (req as any)?.cookies?.refresh_token ??
+      (req as any)?.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token required');
+    }
+
+    return this.authService.logout(refreshToken);
   }
 
   @Get('google')
