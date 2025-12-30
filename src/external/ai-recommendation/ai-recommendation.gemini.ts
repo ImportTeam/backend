@@ -3,6 +3,10 @@ import { Logger, ServiceUnavailableException } from '@nestjs/common';
 import { jsonrepair } from 'jsonrepair';
 import { z } from 'zod';
 import { createHash } from 'crypto';
+import { LRUCache } from 'lru-cache';
+import { randomInt } from 'crypto';
+import Bottleneck from 'bottleneck';
+import { Counter, Histogram, register } from 'prom-client';
 import type {
   AiBenefitRecommendationSummaryRequest,
   AiBenefitRecommendationSummaryResponse,
@@ -195,6 +199,7 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
 
   private readonly apiKey: string;
   private readonly model: string;
+  private readonly preferredModels: string[];
 
   // No Redis: use only in-memory cache for AI responses to avoid external dependency.
 
@@ -206,20 +211,63 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
     this.apiKey = apiKey;
     // gemini-2.5-flash-lite는 가장 저렴한 모델 (비용 효율적인 요약 작업에 최적화)
     // 테스트 결과 gemini-2.5-flash-lite가 정상 작동 확인됨
-    this.model = (
-      options?.model ??
-      process.env.GEMINI_MODEL ??
-      'gemini-2.5-flash-lite'
-    ).trim();
-    // Redis disabled: using in-memory cache only.
+    // Support multiple preferred models via GEMINI_MODELS (comma-separated).
+    const envModels = (process.env.GEMINI_MODELS ?? '').toString().trim();
+    const singleModel = (options?.model ?? process.env.GEMINI_MODEL ?? '').toString().trim();
+    const parsed = envModels
+      ? envModels.split(',').map((s) => s.trim()).filter(Boolean)
+      : singleModel
+      ? [singleModel]
+      : ['gemini-2.5-flash-lite'];
+    this.preferredModels = Array.from(new Set(parsed));
+    this.model = this.preferredModels[0];
+    // Initialize rate limiter
+    this.rateLimitPerSec = Number(process.env.AI_RATE_LIMIT_PER_SEC ?? '5');
+    this.tokens = Math.max(1, this.rateLimitPerSec);
+    this.lastRefillMs = Date.now();
   }
 
-  // Simple in-memory cache to avoid repeated LLM calls for identical requests.
-  // Keyed by sha256(method + requestPayload). Entries expire after TTL seconds.
-  private static cache = new Map<string, { expiresAt: number; value: any }>();
+  // LRU in-memory cache to avoid repeated LLM calls for identical requests.
+  // Uses `lru-cache` for efficient eviction and TTL handling.
   private static readonly CACHE_TTL_SEC = Number(process.env.AI_CACHE_TTL_SEC ?? '3600');
   private static readonly CACHE_MAX_ENTRIES = Number(process.env.AI_CACHE_MAX_ENTRIES ?? '1000');
-  // In-memory cache only (no Redis).
+  private static cache = new LRUCache<string, any>({
+    max: AiRecommendationGeminiClient.CACHE_MAX_ENTRIES,
+    ttl: AiRecommendationGeminiClient.CACHE_TTL_SEC * 1000,
+  });
+
+  // Simple token-bucket rate limiter (per-instance). Controls outbound LLM request rate.
+  private rateLimitPerSec: number;
+  private tokens: number;
+  private lastRefillMs: number;
+  // Global limiter to cap concurrent/generic throughput across instances
+  private static readonly limiter = new Bottleneck({
+    maxConcurrent: Number(process.env.AI_MAX_CONCURRENCY ?? '2'),
+    minTime: Number(process.env.AI_MIN_TIME_MS ?? '50'),
+  });
+
+  // Prometheus metrics
+  private static readonly metricsRequests = new Counter({
+    name: 'ai_recommendation_requests_total',
+    help: 'Total AI recommendation requests attempted',
+    registers: [register],
+  });
+  private static readonly metricsFailures = new Counter({
+    name: 'ai_recommendation_failures_total',
+    help: 'Total AI recommendation failures',
+    registers: [register],
+  });
+  private static readonly metricsCacheHits = new Counter({
+    name: 'ai_recommendation_cache_hits_total',
+    help: 'Total AI recommendation cache hits',
+    registers: [register],
+  });
+  private static readonly metricsLatency = new Histogram({
+    name: 'ai_recommendation_request_duration_seconds',
+    help: 'AI recommendation request duration in seconds',
+    buckets: [0.1, 0.3, 1, 3, 10],
+    registers: [register],
+  });
 
   private makeCacheKey(method: string, payload: unknown): string {
     const h = createHash('sha256');
@@ -228,31 +276,40 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
   }
 
   private getFromCache<T>(key: string): T | null {
-    const e = AiRecommendationGeminiClient.cache.get(key);
-    if (!e) return null;
-    if (Date.now() > e.expiresAt) {
-      AiRecommendationGeminiClient.cache.delete(key);
-      return null;
-    }
-    return e.value as T;
+    const v = AiRecommendationGeminiClient.cache.get(key);
+    if (typeof v === 'undefined' || v === null) return null;
+    AiRecommendationGeminiClient.metricsCacheHits.inc();
+    return v as T;
   }
 
   private setCache(key: string, value: unknown): void {
-    // In-memory only: keep writes fast and best-effort.
-    // simple eviction: if cache grows beyond max, clear oldest ~10%
-    if (AiRecommendationGeminiClient.cache.size >= AiRecommendationGeminiClient.CACHE_MAX_ENTRIES) {
-      const removeCount = Math.max(1, Math.floor(AiRecommendationGeminiClient.cache.size * 0.1));
-      const it = AiRecommendationGeminiClient.cache.keys();
-      for (let i = 0; i < removeCount; i++) {
-        const k = it.next().value;
-        if (!k) break;
-        AiRecommendationGeminiClient.cache.delete(k);
-      }
+    // Use LRU cache set (ttl handled by LRU)
+    AiRecommendationGeminiClient.cache.set(key, value);
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((res) => setTimeout(res, ms));
+  }
+
+  private refillTokens(): void {
+    const now = Date.now();
+    const elapsed = Math.max(0, now - this.lastRefillMs);
+    const add = (elapsed / 1000) * this.rateLimitPerSec;
+    if (add > 0) {
+      this.tokens = Math.min(this.rateLimitPerSec, this.tokens + add);
+      this.lastRefillMs = now;
     }
-    AiRecommendationGeminiClient.cache.set(key, {
-      expiresAt: Date.now() + AiRecommendationGeminiClient.CACHE_TTL_SEC * 1000,
-      value,
-    });
+  }
+
+  private async waitForToken(): Promise<void> {
+    for (;;) {
+      this.refillTokens();
+      if (this.tokens >= 1) {
+        this.tokens -= 1;
+        return;
+      }
+      await this.sleep(100);
+    }
   }
 
   private async generateJson<T>(
@@ -292,29 +349,61 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
         },
       });
 
-      const post = async (useJsonMime: boolean, useSchema: boolean) =>
-        axios.post<GeminiGenerateContentResponse>(
-          url,
-          makeBody(useJsonMime, useSchema),
-          {
-            timeout: 15000,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          },
-        );
+      const maxRetries = Number(process.env.AI_MAX_RETRIES ?? '3');
+      const baseDelayMs = Number(process.env.AI_BACKOFF_BASE_MS ?? '500');
+
+      const doPost = async (useJsonMime: boolean, useSchema: boolean) => {
+        let lastErr: any = null;
+        for (let attempt = 0; attempt < Math.max(1, maxRetries); attempt++) {
+          await this.waitForToken();
+          try {
+                  // Schedule through global limiter to cap concurrency
+                  const resp = await AiRecommendationGeminiClient.limiter.schedule(() =>
+                    axios.post<GeminiGenerateContentResponse>(url, makeBody(useJsonMime, useSchema), {
+                      timeout: 15000,
+                      headers: { 'Content-Type': 'application/json' },
+                    }),
+                  );
+                  return resp;
+          } catch (err: any) {
+            lastErr = err;
+            const status = err?.response?.status;
+            // Retry on network errors, 5xx, and 429 with backoff. For client errors (4xx except 429/404), don't retry.
+            if (status && status >= 400 && status < 500 && status !== 429 && status !== 503) {
+              throw err;
+            }
+
+            // If Retry-After header provided, honor it.
+            const ra = err?.response?.headers?.['retry-after'];
+            let delay = baseDelayMs * Math.pow(2, attempt);
+            if (ra) {
+              const raSec = Number(ra);
+              if (Number.isFinite(raSec) && raSec > 0) delay = Math.max(delay, raSec * 1000);
+            }
+            // add small jitter
+            delay += randomInt(0, 200);
+            await this.sleep(delay);
+            continue;
+          }
+        }
+        throw lastErr;
+      };
 
       let data: GeminiGenerateContentResponse;
       try {
-        ({ data } = await post(true, Boolean(schema)));
+        AiRecommendationGeminiClient.metricsRequests.inc();
+        const end = AiRecommendationGeminiClient.metricsLatency.startTimer();
+        ({ data } = await doPost(true, Boolean(schema)));
+        end();
       } catch (err: any) {
+        AiRecommendationGeminiClient.metricsFailures.inc();
         // 1) responseSchema 미지원 폴백
         if (schema && isLikelyUnknownFieldBadRequest(err, 'responseSchema')) {
-          ({ data } = await post(true, false));
+          ({ data } = await doPost(true, false));
         }
         // 2) responseMimeType 미지원 폴백
         else if (isLikelyUnknownFieldBadRequest(err, 'responseMimeType')) {
-          ({ data } = await post(false, false));
+          ({ data } = await doPost(false, false));
         } else {
           throw err;
         }
@@ -354,7 +443,9 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       // across models because that will also be rate-limited.
       if (statusCode === 404) {
         try {
-          const candidates = await this.listAvailableTextModels();
+          const remoteCandidates = await this.listAvailableTextModels();
+          // Preferred models specified via GEMINI_MODELS take precedence.
+          const candidates = Array.from(new Set([...(this.preferredModels ?? []), ...remoteCandidates]));
           if (candidates.length > 0) {
             this.logger.warn(`Attempting model failover. candidates=${candidates.join(',')}`);
           } else {
