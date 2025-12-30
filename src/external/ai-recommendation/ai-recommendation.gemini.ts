@@ -2,6 +2,7 @@ import axios from 'axios';
 import { Logger, ServiceUnavailableException } from '@nestjs/common';
 import { jsonrepair } from 'jsonrepair';
 import { z } from 'zod';
+import { createHash } from 'crypto';
 import type {
   AiBenefitRecommendationSummaryRequest,
   AiBenefitRecommendationSummaryResponse,
@@ -210,6 +211,45 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
     ).trim();
   }
 
+  // Simple in-memory cache to avoid repeated LLM calls for identical requests.
+  // Keyed by sha256(method + requestPayload). Entries expire after TTL seconds.
+  private static cache = new Map<string, { expiresAt: number; value: any }>();
+  private static readonly CACHE_TTL_SEC = Number(process.env.AI_CACHE_TTL_SEC ?? '3600');
+  private static readonly CACHE_MAX_ENTRIES = Number(process.env.AI_CACHE_MAX_ENTRIES ?? '1000');
+
+  private makeCacheKey(method: string, payload: unknown): string {
+    const h = createHash('sha256');
+    h.update(method + '|' + stringifyForPrompt(payload));
+    return h.digest('hex');
+  }
+
+  private getFromCache<T>(key: string): T | null {
+    const e = AiRecommendationGeminiClient.cache.get(key);
+    if (!e) return null;
+    if (Date.now() > e.expiresAt) {
+      AiRecommendationGeminiClient.cache.delete(key);
+      return null;
+    }
+    return e.value as T;
+  }
+
+  private setCache(key: string, value: unknown): void {
+    // simple eviction: if cache grows beyond max, clear oldest ~10%
+    if (AiRecommendationGeminiClient.cache.size >= AiRecommendationGeminiClient.CACHE_MAX_ENTRIES) {
+      const removeCount = Math.max(1, Math.floor(AiRecommendationGeminiClient.cache.size * 0.1));
+      const it = AiRecommendationGeminiClient.cache.keys();
+      for (let i = 0; i < removeCount; i++) {
+        const k = it.next().value;
+        if (!k) break;
+        AiRecommendationGeminiClient.cache.delete(k);
+      }
+    }
+    AiRecommendationGeminiClient.cache.set(key, {
+      expiresAt: Date.now() + AiRecommendationGeminiClient.CACHE_TTL_SEC * 1000,
+      value,
+    });
+  }
+
   private async generateJson<T>(
     prompt: string,
     options?: { schema?: Record<string, any> },
@@ -301,6 +341,59 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
         );
       }
     } catch (err: any) {
+      // If model-specific errors like 404 (model not found) or 429 (rate limit)
+      // occurred, attempt to fetch available text models and retry sequentially.
+      const statusCode = err?.response?.status ?? err?.status;
+      if (statusCode === 404 || statusCode === 429) {
+        try {
+          const candidates = await this.listAvailableTextModels();
+          this.logger.warn(
+            `Attempting model failover. candidates=${candidates.join(',')}`,
+          );
+
+          for (const candidate of candidates) {
+            if (candidate === this.model) continue;
+            this.logger.log(`Retrying with model=${candidate}`);
+            this.model = candidate;
+            try {
+              // retry the original request once with the new model
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+                this.model,
+              )}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
+              const body = {
+                contents: [
+                  {
+                    role: 'user',
+                    parts: [{ text: prompt }],
+                  },
+                ],
+                generationConfig: {
+                  temperature: 0.2,
+                  maxOutputTokens: 512,
+                  ...(options?.schema ? { responseSchema: options?.schema } : null),
+                },
+              };
+
+              const resp = await axios.post<GeminiGenerateContentResponse>(
+                url,
+                body,
+                {
+                  timeout: 15000,
+                  headers: { 'Content-Type': 'application/json' },
+                },
+              );
+              const text2 = extractTextFromGemini(resp.data);
+              const json2 = extractFirstJsonObject(text2);
+              return json2 as T;
+            } catch (e) {
+              this.logger.warn(`Model ${candidate} failed, trying next`);
+              continue;
+            }
+          }
+        } catch (listErr) {
+          this.logger.error(`Failed to list models for failover: ${String(listErr?.message ?? listErr)}`);
+        }
+      }
       const shouldIncludeResponseBody = shouldIncludeVerboseLogs || true; // 404 에러 디버깅을 위해 항상 포함
 
       let message: string =
@@ -354,14 +447,66 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
     }
   }
 
+  private async listAvailableTextModels(): Promise<string[]> {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(
+        this.apiKey,
+      )}`;
+      const res = await axios.get(url, { timeout: 10000 });
+      const data = res.data;
+      const models: string[] = [];
+      // API may return { models: [{ name: 'models/gemini-2.5-flash-lite', displayName: '...' , category: 'TEXT_OUTPUT' }, ...] }
+      if (Array.isArray(data?.models)) {
+        for (const m of data.models) {
+          const name: string = m?.name ?? m?.model ?? '';
+          if (!name) continue;
+          const id = name.includes('/') ? name.split('/').pop()! : name;
+          const lname = id.toLowerCase();
+          // heuristics: include models that are text output/LLM and exclude audio/tts
+          const category = (m?.category ?? '').toString().toLowerCase();
+          if (category.includes('text') || lname.includes('gemini') || lname.includes('gemma') || lname.includes('gpt')) {
+            if (!lname.includes('audio') && !lname.includes('tts') && !lname.includes('dialogue-native-audio')) {
+              models.push(id);
+            }
+          }
+        }
+      }
+      // ensure default preferred ordering: favor flash-lite/flash
+      // Preferred fallback order (text-output models only). Derived from available
+      // models list provided by the team — TTS/image models are intentionally
+      // omitted.
+      const preferred = [
+        'gemini-3-pro-preview',
+        'gemini-3-flash-preview',
+        'gemini-2.5-pro',
+        'gemini-2.5-flash',
+        'gemini-2.5-flash-preview',
+        'gemini-2.5-flash-lite',
+        'gemini-2.0-flash',
+        'gemini-2.0-flash-lite',
+      ];
+      const sorted = Array.from(new Set([...preferred, ...models]));
+      return sorted.filter(Boolean);
+    } catch (err) {
+      this.logger.warn(`Failed to fetch model list: ${String(err?.message ?? err)}`);
+      return [];
+    }
+  }
+
   async getMonthlySavingsNarrative(
     req: AiMonthlySavingsNarrativeRequest,
   ): Promise<AiMonthlySavingsNarrativeResponse> {
+    const cacheKey = this.makeCacheKey('monthlySavings', req);
+    const cached = this.getFromCache<AiMonthlySavingsNarrativeResponse>(cacheKey);
+    if (cached) return cached;
+
     if (!req?.months || req.months.length === 0) {
-      return {
+      const emptyResult: AiMonthlySavingsNarrativeResponse = {
         summary: '최근 6개월 데이터가 부족해 추이를 분석할 수 없습니다.',
         highlights: [],
       };
+      this.setCache(cacheKey, emptyResult);
+      return emptyResult;
     }
 
     const prompt =
@@ -403,17 +548,22 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
           return MonthlySavingsNarrativeLenientSchema.parse(out);
         })();
 
-    return {
+    const result: AiMonthlySavingsNarrativeResponse = {
       summary: parsed.summary,
       highlights: parsed.highlights
         .filter((x) => typeof x === 'string')
         .slice(0, 6),
     };
+    this.setCache(cacheKey, result);
+    return result;
   }
 
   async getBenefitRecommendationSummary(
     req: AiBenefitRecommendationSummaryRequest,
   ): Promise<AiBenefitRecommendationSummaryResponse> {
+    const cacheKey = this.makeCacheKey('benefitRecommendation', req);
+    const cached = this.getFromCache<AiBenefitRecommendationSummaryResponse>(cacheKey);
+    if (cached) return cached;
     const prompt =
       `당신은 카드/페이 혜택 추천 전문가입니다. 사용자의 소비 패턴과 보유 결제수단, 이용 가능한 혜택을 종합 분석하여 실용적인 추천을 제공하세요.\n\n` +
       `**분석 지침:**\n` +
@@ -454,15 +604,20 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
           return BenefitRecommendationLenientSchema.parse(out);
         })();
 
-    return {
+    const result: AiBenefitRecommendationSummaryResponse = {
       recommendation: parsed.recommendation,
       reasonSummary: parsed.reasonSummary,
     };
+    this.setCache(cacheKey, result);
+    return result;
   }
 
   async getRecommendedPaymentMethodsTop3(
     req: AiPaymentMethodTop3Request,
   ): Promise<AiPaymentMethodTop3Response> {
+    const cacheKey = this.makeCacheKey('paymentMethodTop3', req);
+    const cached = this.getFromCache<AiPaymentMethodTop3Response>(cacheKey);
+    if (cached) return cached;
     const prompt =
       `당신은 결제수단 추천 전문가입니다. 사용자의 소비 패턴과 이용 가능한 혜택을 분석하여 최적의 결제수단 Top3를 추천하세요.\n\n` +
       `**분석 지침:**\n` +
@@ -541,6 +696,8 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       .filter(Boolean)
       .slice(0, 3) as AiPaymentMethodTop3Response['items'];
 
-    return { items };
+    const result: AiPaymentMethodTop3Response = { items };
+    this.setCache(cacheKey, result);
+    return result;
   }
 }
