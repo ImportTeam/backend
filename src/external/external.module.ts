@@ -17,17 +17,13 @@ import { AiRecommendationClientWithFallback } from './ai-recommendation/ai-recom
       provide: AI_RECOMMENDATION_CLIENT,
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        // TODO: 테스트용 하드코딩 - 프로덕션에서는 환경 변수 사용
-        const apiKey =
-          (config.get<string>('GEMINI_API_KEY') ?? '').trim() ||
-          'AIzaSyC_86z9CU8YueUuqJroqWqzgeUl4VkUQGs';
+        // GEMINI API key / model are read from environment via ConfigService
+        const apiKey = (config.get<string>('GEMINI_API_KEY') ?? '').trim();
         // Gemini 모델 이름 옵션:
         // - gemini-2.5-flash-lite: 가장 저렴한 모델 (권장)
         // - gemini-2.5-flash: 빠른 모델
         // - gemini-flash-latest: 최신 Flash 모델
-        const model =
-          (config.get<string>('GEMINI_MODEL') ?? '').trim() ||
-          'gemini-2.5-flash-lite';
+        const model = (config.get<string>('GEMINI_MODEL') ?? '').trim();
 
         if (!apiKey) {
           const logger = new Logger('ExternalModule');
