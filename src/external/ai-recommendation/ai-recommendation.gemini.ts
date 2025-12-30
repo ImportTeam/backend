@@ -255,11 +255,12 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
     options?: { schema?: Record<string, any> },
   ): Promise<T> {
     // Gemini API 엔드포인트: v1beta 사용
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-      this.model,
+      let modelToUse = this.model;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+      modelToUse,
     )}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
-    
-    this.logger.debug(`Gemini API 호출: model=${this.model}, url=${url.substring(0, 80)}...`);
+
+      this.logger.debug(`Gemini API 호출: model=${modelToUse}, url=${url.substring(0, 80)}...`);
 
     const logLevel = (process.env.LOG_LEVEL ?? '').trim().toLowerCase();
     const shouldIncludeVerboseLogs = ['debug', 'verbose', 'silly'].includes(
@@ -352,13 +353,13 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
           );
 
           for (const candidate of candidates) {
-            if (candidate === this.model) continue;
+            if (candidate === modelToUse) continue;
             this.logger.log(`Retrying with model=${candidate}`);
-            this.model = candidate;
+            modelToUse = candidate;
             try {
               // retry the original request once with the new model
               const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-                this.model,
+                modelToUse,
               )}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
               const body = {
                 contents: [
@@ -431,10 +432,10 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       // 404 에러는 모델 이름이나 API 엔드포인트 문제일 수 있음
       if (status === 404) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-          this.model,
+          modelToUse,
         )}:generateContent?key=***`;
         this.logger.error(
-          `Gemini API 404 에러: 모델 이름(${this.model}) 또는 API 엔드포인트를 확인하세요. URL: ${url} status=${status} message=${message}`,
+          `Gemini API 404 에러: 모델 이름(${modelToUse}) 또는 API 엔드포인트를 확인하세요. URL: ${url} status=${status} message=${message}`,
         );
       } else {
       this.logger.error(
