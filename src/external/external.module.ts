@@ -1,8 +1,10 @@
-import { Global, Module } from '@nestjs/common';
+import { Global, Module, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AI_RECOMMENDATION_CLIENT, POPBILL_CLIENT } from './external.tokens';
 import { PopbillClientStub } from './popbill/popbill.stub';
 import { AiRecommendationGeminiClient } from './ai-recommendation/ai-recommendation.gemini';
+import { AiRecommendationClientStub } from './ai-recommendation/ai-recommendation.stub';
+import { AiRecommendationClientWithFallback } from './ai-recommendation/ai-recommendation.fallback';
 
 @Global()
 @Module({
@@ -15,17 +17,33 @@ import { AiRecommendationGeminiClient } from './ai-recommendation/ai-recommendat
       provide: AI_RECOMMENDATION_CLIENT,
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const apiKey = (config.get<string>('GEMINI_API_KEY') ?? '').trim();
+        // TODO: 테스트용 하드코딩 - 프로덕션에서는 환경 변수 사용
+        const apiKey =
+          (config.get<string>('GEMINI_API_KEY') ?? '').trim() ||
+          'AIzaSyC_86z9CU8YueUuqJroqWqzgeUl4VkUQGs';
+        // Gemini 모델 이름 옵션:
+        // - gemini-2.5-flash-lite: 가장 저렴한 모델 (권장)
+        // - gemini-2.5-flash: 빠른 모델
+        // - gemini-flash-latest: 최신 Flash 모델
+        const model =
+          (config.get<string>('GEMINI_MODEL') ?? '').trim() ||
+          'gemini-2.5-flash-lite';
+
         if (!apiKey) {
-          throw new Error(
-            'GEMINI_API_KEY is required to use AI recommendation features.',
+          const logger = new Logger('ExternalModule');
+          logger.warn(
+            'GEMINI_API_KEY is not set. AI recommendation features will use stub implementation.',
           );
+          return new AiRecommendationClientStub();
         }
 
-        return new AiRecommendationGeminiClient({
+        const geminiClient = new AiRecommendationGeminiClient({
           apiKey,
-          model: config.get<string>('GEMINI_MODEL') ?? undefined,
+          model,
         });
+
+        // 429 에러나 서비스 불가 에러 발생 시 자동으로 stub으로 폴백
+        return new AiRecommendationClientWithFallback(geminiClient);
       },
     },
   ],

@@ -71,9 +71,9 @@ class EnvironmentVariables {
   @IsOptional()
   NAVER_REDIRECT_PROD_URI?: string;
 
-  @IsNotEmpty()
   @IsString()
-  GEMINI_API_KEY: string;
+  @IsOptional()
+  GEMINI_API_KEY?: string;
 
   @IsString()
   @IsOptional()
