@@ -52,62 +52,62 @@ export class AuthService {
     const { email, password } = loginDto;
 
     try {
-      const user = await this.usersService.findByEmail(email);
-      if (!user) {
-        this.logger.warn(`[Login] user not found (email=${String(email)})`);
-        throw new UnauthorizedException(
-          '이메일 또는 비밀번호가 올바르지 않습니다.',
-        );
-      }
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      this.logger.warn(`[Login] user not found (email=${String(email)})`);
+      throw new UnauthorizedException(
+        '이메일 또는 비밀번호가 올바르지 않습니다.',
+      );
+    }
 
-      // Social-only accounts may not have a password hash.
-      // Also, bcryptjs can throw if hash format is invalid/empty.
-      if (!user.password_hash) {
-        this.logger.warn(
-          `[Login] social-only or missing password_hash (email=${String(email)}, userSeq=${user.seq?.toString?.() ?? String(user.seq)})`,
-        );
-        throw new UnauthorizedException(
-          '이메일 또는 비밀번호가 올바르지 않습니다.',
-        );
-      }
+    // Social-only accounts may not have a password hash.
+    // Also, bcryptjs can throw if hash format is invalid/empty.
+    if (!user.password_hash) {
+      this.logger.warn(
+        `[Login] social-only or missing password_hash (email=${String(email)}, userSeq=${user.seq?.toString?.() ?? String(user.seq)})`,
+      );
+      throw new UnauthorizedException(
+        '이메일 또는 비밀번호가 올바르지 않습니다.',
+      );
+    }
 
-      let isPasswordValid = false;
-      try {
-        isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    let isPasswordValid = false;
+    try {
+      isPasswordValid = await bcrypt.compare(password, user.password_hash);
       } catch (error) {
         this.logger.warn(
           `[Login] bcrypt.compare error: ${String(error?.message || error)}`,
         );
-        isPasswordValid = false;
-      }
-      if (!isPasswordValid) {
-        this.logger.warn(
-          `[Login] password mismatch (email=${String(email)}, userSeq=${user.seq?.toString?.() ?? String(user.seq)})`,
-        );
-        throw new UnauthorizedException(
-          '이메일 또는 비밀번호가 올바르지 않습니다.',
-        );
-      }
+      isPasswordValid = false;
+    }
+    if (!isPasswordValid) {
+      this.logger.warn(
+        `[Login] password mismatch (email=${String(email)}, userSeq=${user.seq?.toString?.() ?? String(user.seq)})`,
+      );
+      throw new UnauthorizedException(
+        '이메일 또는 비밀번호가 올바르지 않습니다.',
+      );
+    }
 
-      const payload = {
+    const payload = {
         sub: user.seq.toString(),
         uuid: user.uuid,
         email: user.email,
-      };
-      const jwtAccessExp = process.env.JWT_EXPIRES_IN || '1h';
-      const jwtRefreshExp = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+    };
+    const jwtAccessExp = process.env.JWT_EXPIRES_IN || '1h';
+    const jwtRefreshExp = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
       let accessToken: string;
       let refreshToken: string;
       try {
         accessToken = await this.jwtService.signAsync(
-          payload as any,
-          { expiresIn: jwtAccessExp } as any,
-        );
+      payload as any,
+      { expiresIn: jwtAccessExp } as any,
+    );
         refreshToken = await this.jwtService.signAsync(
           { sub: user.seq.toString(), uuid: user.uuid } as any,
-          { expiresIn: jwtRefreshExp } as any,
-        );
+      { expiresIn: jwtRefreshExp } as any,
+    );
       } catch (error) {
         this.logger.error(
           `[Login] Failed to generate tokens: ${String(error?.message || error)}`,
@@ -117,16 +117,16 @@ export class AuthService {
         );
       }
 
-      const accessMs = parseDurationToMs(jwtAccessExp) || 60 * 60 * 1000;
-      const expiresAt = new Date(Date.now() + accessMs);
+    const accessMs = parseDurationToMs(jwtAccessExp) || 60 * 60 * 1000;
+    const expiresAt = new Date(Date.now() + accessMs);
 
       try {
-        await this.usersService.createSession({
+    await this.usersService.createSession({
           user_seq: user.seq,
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          expires_at: expiresAt,
-        });
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_at: expiresAt,
+    });
       } catch (error) {
         this.logger.error(
           `[Login] Failed to create session: ${String(error?.message || error)}`,
@@ -136,20 +136,20 @@ export class AuthService {
         );
       }
 
-      const issuedAt = new Date().toISOString();
+    const issuedAt = new Date().toISOString();
 
-      return {
-        message: '로그인 성공',
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        issued_at: issuedAt,
-        user: {
+    return {
+      message: '로그인 성공',
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      issued_at: issuedAt,
+      user: {
           id: user.seq,
           uuid: user.uuid,
           email: user.email,
           name: user.name,
-        },
-      };
+      },
+    };
     } catch (error) {
       // 이미 HttpException인 경우 그대로 재던지기
       if (error instanceof UnauthorizedException) {
@@ -400,8 +400,8 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token required');
 
     try {
-      const refreshSecret =
-        process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+    const refreshSecret =
+      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
       if (!refreshSecret) {
         this.logger.error('[Refresh] JWT secret not configured');
         throw new InternalServerErrorException(
@@ -409,46 +409,46 @@ export class AuthService {
         );
       }
 
-      const payload = await this.jwtService
-        .verifyAsync(refreshToken, { secret: refreshSecret })
+    const payload = await this.jwtService
+      .verifyAsync(refreshToken, { secret: refreshSecret })
         .catch((error) => {
           this.logger.warn(
             `[Refresh] Token verification failed: ${String(error?.message || error)}`,
           );
-          throw new UnauthorizedException('Invalid or expired refresh token');
-        });
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      });
 
-      const session =
-        await this.usersService.findSessionByRefreshToken(refreshToken);
+    const session =
+      await this.usersService.findSessionByRefreshToken(refreshToken);
       if (!session) {
         this.logger.warn('[Refresh] Session not found for refresh token');
-        throw new UnauthorizedException(
-          'Session not found or refresh token revoked',
-        );
+      throw new UnauthorizedException(
+        'Session not found or refresh token revoked',
+      );
       }
 
-      const user = await this.usersService.findBySeq(session.user_seq as bigint);
+    const user = await this.usersService.findBySeq(session.user_seq as bigint);
       if (!user) {
         this.logger.warn(
           `[Refresh] User not found for session (user_seq=${session.user_seq})`,
         );
-        throw new UnauthorizedException('Invalid or expired refresh token');
+      throw new UnauthorizedException('Invalid or expired refresh token');
       }
 
-      const accessExp = process.env.JWT_EXPIRES_IN || '1h';
-      const refreshExp = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+    const accessExp = process.env.JWT_EXPIRES_IN || '1h';
+    const refreshExp = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
       let accessToken: string;
       let newRefreshToken: string;
       try {
         accessToken = await this.jwtService.signAsync(
-          { sub: user.seq.toString(), uuid: user.uuid, email: user.email } as any,
-          { expiresIn: accessExp } as any,
-        );
+      { sub: user.seq.toString(), uuid: user.uuid, email: user.email } as any,
+      { expiresIn: accessExp } as any,
+    );
         newRefreshToken = await this.jwtService.signAsync(
-          { sub: user.seq.toString(), uuid: user.uuid } as any,
-          { expiresIn: refreshExp, secret: refreshSecret } as any,
-        );
+      { sub: user.seq.toString(), uuid: user.uuid } as any,
+      { expiresIn: refreshExp, secret: refreshSecret } as any,
+    );
       } catch (error) {
         this.logger.error(
           `[Refresh] Failed to generate tokens: ${String(error?.message || error)}`,
@@ -458,17 +458,17 @@ export class AuthService {
         );
       }
 
-      const accessMs = parseDurationToMs(accessExp) || 60 * 60 * 1000;
-      const expiresAt = new Date(Date.now() + accessMs);
+    const accessMs = parseDurationToMs(accessExp) || 60 * 60 * 1000;
+    const expiresAt = new Date(Date.now() + accessMs);
 
       try {
-        await this.usersService.deleteSessionByRefreshToken(refreshToken);
-        await this.usersService.createSession({
-          user_seq: user.seq,
-          access_token: accessToken,
-          refresh_token: newRefreshToken,
-          expires_at: expiresAt,
-        });
+    await this.usersService.deleteSessionByRefreshToken(refreshToken);
+    await this.usersService.createSession({
+      user_seq: user.seq,
+      access_token: accessToken,
+      refresh_token: newRefreshToken,
+      expires_at: expiresAt,
+    });
       } catch (error) {
         this.logger.error(
           `[Refresh] Failed to update session: ${String(error?.message || error)}`,
@@ -480,11 +480,11 @@ export class AuthService {
         );
       }
 
-      return {
-        access_token: accessToken,
-        refresh_token: newRefreshToken,
-        issued_at: new Date().toISOString(),
-      };
+    return {
+      access_token: accessToken,
+      refresh_token: newRefreshToken,
+      issued_at: new Date().toISOString(),
+    };
     } catch (error) {
       // 이미 HttpException인 경우 그대로 재던지기
       if (error instanceof UnauthorizedException) {

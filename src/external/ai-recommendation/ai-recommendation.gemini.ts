@@ -200,7 +200,7 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is not set');
     }
-      this.apiKey = apiKey;
+    this.apiKey = apiKey;
     // gemini-2.5-flash-lite는 가장 저렴한 모델 (비용 효율적인 요약 작업에 최적화)
     // 테스트 결과 gemini-2.5-flash-lite가 정상 작동 확인됨
     this.model = (
@@ -344,9 +344,9 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
           `Gemini API 404 에러: 모델 이름(${this.model}) 또는 API 엔드포인트를 확인하세요. URL: ${url} status=${status} message=${message}`,
         );
       } else {
-        this.logger.error(
-          `Gemini request failed: status=${String(status ?? 'unknown')} message=${message}`,
-        );
+      this.logger.error(
+        `Gemini request failed: status=${String(status ?? 'unknown')} message=${message}`,
+      );
       }
       throw new ServiceUnavailableException(
         'AI 추천 서비스를 사용할 수 없습니다.',

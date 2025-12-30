@@ -135,16 +135,19 @@ async function main() {
   const thisMonth = now.getMonth();
   const mkDate = (y: number, m: number, d: number) => new Date(y, m, d, 12, 0, 0);
 
-  // 대시보드에서 분류가 잘 되는 가맹점명을 충분히 섞어서 대량으로 넣습니다.
-  // (쇼핑/식비/교통/구독/생활/여행/기타)
+  // 요청사항: 지출 내역에 등장하는 가맹점은 아래 4개로만 제한
+  // (이 값들은 이후 신규 유저 템플릿 복제에도 사용됩니다.)
+  const allowedMerchants = ['G\uB9C8\uCF13', '11\uBC88\uAC00', '\uCFE0\uD321', '\uB2E4\uB098\uC640'];
+
+  // 기존 생성 로직(그룹/월별 분포)은 유지하되, merchant_name은 항상 4개 중 하나만 사용합니다.
   const merchants = {
-    shopping: ['쿠팡', '11번가', 'Gmarket', '무신사'],
-    food: ['스타벅스', '맥도날드', '동네식당', '카페베네'],
-    transport: ['지하철', '버스', '택시', 'Kakao T'],
-    subscription: ['넷플릭스', '유튜브 프리미엄', 'Spotify'],
-    living: ['GS25', 'CU', '이마트', '홈플러스'],
-    travel: ['호텔', '항공권', '숙박'],
-    other: ['병원', '학원', '서점'],
+    shopping: allowedMerchants,
+    food: allowedMerchants,
+    transport: allowedMerchants,
+    subscription: allowedMerchants,
+    living: allowedMerchants,
+    travel: allowedMerchants,
+    other: allowedMerchants,
   };
 
   const pick = <T>(arr: T[], idx: number) => arr[idx % arr.length];
