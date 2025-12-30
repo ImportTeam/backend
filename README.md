@@ -167,6 +167,20 @@ docker build -t picsel-backend .
 docker run --rm -p 3000:3000 --env-file .env picsel-backend
 ```
 
+## Redis cache for AI summaries (optional)
+
+This project supports using Redis to persist AI-generated summaries and recommendations across restarts and instances.
+
+To enable, set `REDIS_URL` in your `.env`, e.g.:
+
+```bash
+REDIS_URL=redis://:password@redis-host:6379/0
+AI_CACHE_TTL_SEC=3600
+```
+
+When `REDIS_URL` is present the server will attempt to write summaries to Redis (still keeping an in-memory cache for fast reads). Redis failures are non-fatal and the service falls back to in-memory cache.
+
+
 ## 디렉토리 구조
 
 ```text

@@ -151,9 +151,11 @@ export class DashboardService {
       const scored = list
         .map((o) => {
           const cf = (o.category_filter ?? '').toString().toLowerCase();
-          const score = topCategories.some((c) => cf.includes(c.toLowerCase()))
-            ? 2
-            : 0;
+          const mf = (o.merchant_filter ?? '').toString().toLowerCase();
+          // 강화된 가중치: 카테고리 매칭에 높은 점수 부여, 가맹점 필터 일치 시 추가 점수
+          let score = 0;
+          if (topCategories.some((c) => cf.includes(c.toLowerCase()))) score += 5;
+          if (topCategories.some((c) => mf.includes(c.toLowerCase()))) score += 3;
           return { o, score };
         })
         .sort((a, b) => b.score - a.score)
@@ -669,8 +671,13 @@ export class DashboardService {
     ]);
 
     const methodSeqs = [
-      ...new Set(items.map((i) => i.payment_method_seq).filter(Boolean)),
+      ...new Set(
+        items
+          .map((i) => (i.payment_method_seq !== null && i.payment_method_seq !== undefined ? i.payment_method_seq : null))
+          .filter(Boolean),
+      ),
     ] as bigint[];
+
     const methods = methodSeqs.length
       ? await this.prisma.payment_methods.findMany({
           where: { seq: { in: methodSeqs } },
@@ -682,15 +689,18 @@ export class DashboardService {
           },
         })
       : [];
-    const methodMap = new Map<bigint, string>();
+
+    // Map keys as strings to avoid subtle bigint/number mismatch on lookup
+    const methodMap = new Map<string, string>();
     for (const m of methods) {
-      methodMap.set(m.seq, m.alias ?? `${m.provider_name}(${m.last_4_nums})`);
+      const key = m.seq.toString();
+      const display = m.alias ?? (m.last_4_nums ? `${m.provider_name}(${m.last_4_nums})` : m.provider_name);
+      methodMap.set(key, display);
     }
 
     const mapped = items.map((tx) => {
-      const pmName = tx.payment_method_seq
-        ? methodMap.get(tx.payment_method_seq)
-        : undefined;
+      const key = tx.payment_method_seq !== null && tx.payment_method_seq !== undefined ? tx.payment_method_seq.toString() : null;
+      const pmName = key ? methodMap.get(key) : undefined;
       return {
         merchantName: tx.merchant_name,
         paidAt: tx.created_at.toISOString(),

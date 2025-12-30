@@ -196,6 +196,8 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
   private readonly apiKey: string;
   private readonly model: string;
 
+  // No Redis: use only in-memory cache for AI responses to avoid external dependency.
+
   constructor(options?: { apiKey?: string; model?: string }) {
     const apiKey = (options?.apiKey ?? process.env.GEMINI_API_KEY ?? '').trim();
     if (!apiKey) {
@@ -209,6 +211,7 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       process.env.GEMINI_MODEL ??
       'gemini-2.5-flash-lite'
     ).trim();
+    // Redis disabled: using in-memory cache only.
   }
 
   // Simple in-memory cache to avoid repeated LLM calls for identical requests.
@@ -216,6 +219,7 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
   private static cache = new Map<string, { expiresAt: number; value: any }>();
   private static readonly CACHE_TTL_SEC = Number(process.env.AI_CACHE_TTL_SEC ?? '3600');
   private static readonly CACHE_MAX_ENTRIES = Number(process.env.AI_CACHE_MAX_ENTRIES ?? '1000');
+  // In-memory cache only (no Redis).
 
   private makeCacheKey(method: string, payload: unknown): string {
     const h = createHash('sha256');
@@ -234,6 +238,7 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
   }
 
   private setCache(key: string, value: unknown): void {
+    // In-memory only: keep writes fast and best-effort.
     // simple eviction: if cache grows beyond max, clear oldest ~10%
     if (AiRecommendationGeminiClient.cache.size >= AiRecommendationGeminiClient.CACHE_MAX_ENTRIES) {
       const removeCount = Math.max(1, Math.floor(AiRecommendationGeminiClient.cache.size * 0.1));
@@ -345,12 +350,16 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       // If model-specific errors like 404 (model not found) or 429 (rate limit)
       // occurred, attempt to fetch available text models and retry sequentially.
       const statusCode = err?.response?.status ?? err?.status;
-      if (statusCode === 404 || statusCode === 429) {
+      // If model not found (404), attempt failover. If rate-limited (429), don't retry
+      // across models because that will also be rate-limited.
+      if (statusCode === 404) {
         try {
           const candidates = await this.listAvailableTextModels();
-          this.logger.warn(
-            `Attempting model failover. candidates=${candidates.join(',')}`,
-          );
+          if (candidates.length > 0) {
+            this.logger.warn(`Attempting model failover. candidates=${candidates.join(',')}`);
+          } else {
+            this.logger.warn('Attempting model failover but no candidates available');
+          }
 
           for (const candidate of candidates) {
             if (candidate === modelToUse) continue;
@@ -375,15 +384,11 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
                 },
               };
 
-              const resp = await axios.post<GeminiGenerateContentResponse>(
-                url,
-                body,
-                {
-                  timeout: 15000,
-                  headers: { 'Content-Type': 'application/json' },
-                },
-              );
-              const text2 = extractTextFromGemini(resp.data);
+              const resp = await axios.post<GeminiGenerateContentResponse>(url, body, {
+                timeout: 15000,
+                headers: { 'Content-Type': 'application/json' },
+              });
+              const text2 = extractTextFromGemini(resp.data ?? {});
               const json2 = extractFirstJsonObject(text2);
               return json2 as T;
             } catch (e) {
@@ -453,8 +458,14 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(
         this.apiKey,
       )}`;
-      const res = await axios.get(url, { timeout: 10000 });
-      const data = res.data;
+      let res;
+      try {
+        res = await axios.get(url, { timeout: 10000 });
+      } catch (err) {
+        this.logger.warn(`Model list fetch failed: ${String(err?.message ?? err)}`);
+        return [];
+      }
+      const data = res?.data ?? {};
       const models: string[] = [];
       // API may return { models: [{ name: 'models/gemini-2.5-flash-lite', displayName: '...' , category: 'TEXT_OUTPUT' }, ...] }
       if (Array.isArray(data?.models)) {
