@@ -122,6 +122,7 @@ model payment_transactions {
   user_uuid           String
   payment_method_seq  BigInt?
   merchant_name       String    @db.VarChar(255)
+  category            String    @default("기타") @db.VarChar(50)
   amount              Decimal   @db.Decimal(19, 2)
   currency            String    @default("KRW")
   benefit_value       Decimal?  @db.Decimal(19, 2)
@@ -140,6 +141,7 @@ model payment_transactions {
 
   @@index([user_uuid, created_at])
   @@index([user_uuid, status, created_at])
+  @@index([user_uuid, category, created_at])
   @@index([payment_method_seq])
   @@index([portone_payment_id])
   @@index([status])

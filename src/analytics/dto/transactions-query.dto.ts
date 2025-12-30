@@ -1,6 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsArray, IsDateString, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 function toStringArray(value: any): string[] | undefined {
   if (value === undefined || value === null || value === '') return undefined;
@@ -17,15 +25,14 @@ function toStringArray(value: any): string[] | undefined {
 function toNumberArray(value: any): number[] | undefined {
   const arr = toStringArray(value);
   if (!arr) return undefined;
-  return arr
-    .map((v) => Number(v))
-    .filter((n) => Number.isFinite(n));
+  return arr.map((v) => Number(v)).filter((n) => Number.isFinite(n));
 }
 
 export class AnalyticsTransactionsQueryDto {
   @ApiPropertyOptional({
     example: '2025-07-01T00:00:00.000Z',
-    description: '조회 시작일(ISO 문자열). 미지정 시 최근 6개월 시작으로 처리됩니다.',
+    description:
+      '조회 시작일(ISO 문자열). 미지정 시 최근 6개월 시작으로 처리됩니다.',
   })
   @IsOptional()
   @IsDateString({}, { message: 'from은 ISO 날짜 문자열이어야 합니다.' })
@@ -41,17 +48,22 @@ export class AnalyticsTransactionsQueryDto {
 
   @ApiPropertyOptional({
     example: '쇼핑,생활',
-    description: '카테고리 필터(복수). 쉼표로 구분하거나 배열로 전달할 수 있습니다.',
+    description:
+      '카테고리 필터(복수). 쉼표로 구분하거나 배열로 전달할 수 있습니다.',
   })
   @IsOptional()
   @Transform(({ value }) => toStringArray(value))
   @IsArray({ message: 'categories는 배열 형태여야 합니다.' })
-  @IsString({ each: true, message: 'categories의 각 값은 문자열이어야 합니다.' })
+  @IsString({
+    each: true,
+    message: 'categories의 각 값은 문자열이어야 합니다.',
+  })
   categories?: string[];
 
   @ApiPropertyOptional({
     example: '쿠팡,GS편의점',
-    description: '쇼핑몰/거래처 필터(복수). 쉼표로 구분하거나 배열로 전달할 수 있습니다.',
+    description:
+      '쇼핑몰/거래처 필터(복수). 쉼표로 구분하거나 배열로 전달할 수 있습니다.',
   })
   @IsOptional()
   @Transform(({ value }) => toStringArray(value))
@@ -61,7 +73,8 @@ export class AnalyticsTransactionsQueryDto {
 
   @ApiPropertyOptional({
     example: '1,2',
-    description: '결제수단 ID 필터(복수). 쉼표로 구분하거나 배열로 전달할 수 있습니다.',
+    description:
+      '결제수단 ID 필터(복수). 쉼표로 구분하거나 배열로 전달할 수 있습니다.',
   })
   @IsOptional()
   @Transform(({ value }) => toNumberArray(value))

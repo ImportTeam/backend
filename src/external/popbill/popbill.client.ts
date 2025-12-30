@@ -22,5 +22,8 @@ export interface PopbillClient {
     req: PopbillCardRegistrationStartRequest,
   ): Promise<PopbillCardRegistrationStartResponse>;
 
-  getCardLimit(userUuid: string, paymentMethodSeq: bigint): Promise<PopbillCardLimitResponse>;
+  getCardLimit(
+    userUuid: string,
+    paymentMethodSeq: bigint,
+  ): Promise<PopbillCardLimitResponse>;
 }

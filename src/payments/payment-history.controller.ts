@@ -20,20 +20,14 @@ export class PaymentHistoryController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  async getUserPaymentHistory(
-    @Query() query: any,
-    @Request() req: any,
-  ) {
+  async getUserPaymentHistory(@Query() query: any, @Request() req: any) {
     const userUuid = req.user.uuid;
     return this.paymentHistoryService.getUserPaymentHistory(userUuid, query);
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  async getPaymentDetail(
-    @Param('id') id: string,
-    @Request() req: any,
-  ) {
+  async getPaymentDetail(@Param('id') id: string, @Request() req: any) {
     const userUuid = req.user.uuid;
     return this.paymentHistoryService.getPaymentDetail(userUuid, id);
   }

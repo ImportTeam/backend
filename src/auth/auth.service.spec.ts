@@ -79,29 +79,40 @@ describe('AuthService', () => {
       expect(result.access_token).toBe(mockToken);
       expect(result.user.email).toBe(mockUser.email);
       expect(usersService.findByEmail).toHaveBeenCalledWith(mockLoginDto.email);
-      expect(bcrypt.compare).toHaveBeenCalledWith(mockLoginDto.password, mockUser.password_hash);
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        mockLoginDto.password,
+        mockUser.password_hash,
+      );
       expect(jwtService.signAsync).toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException if user not found', async () => {
       (usersService.findByEmail as jest.Mock).mockResolvedValue(null);
 
-      await expect(authService.login(mockLoginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.login(mockLoginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException if password is invalid', async () => {
       (usersService.findByEmail as jest.Mock).mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(authService.login(mockLoginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.login(mockLoginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should handle null password_hash gracefully', async () => {
       const userWithoutPassword = { ...mockUser, password_hash: null };
-      (usersService.findByEmail as jest.Mock).mockResolvedValue(userWithoutPassword);
+      (usersService.findByEmail as jest.Mock).mockResolvedValue(
+        userWithoutPassword,
+      );
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(authService.login(mockLoginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.login(mockLoginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
       expect(bcrypt.compare).not.toHaveBeenCalled();
     });
   });
@@ -123,7 +134,9 @@ describe('AuthService', () => {
 
       expect(result.message).toBe('소셜 로그인 성공');
       expect(result.access_token).toBe(mockToken);
-      expect(usersService.findByEmail).toHaveBeenCalledWith(mockSocialUser.email);
+      expect(usersService.findByEmail).toHaveBeenCalledWith(
+        mockSocialUser.email,
+      );
       expect(usersService.createSocialUser).not.toHaveBeenCalled();
     });
 
@@ -159,7 +172,11 @@ describe('AuthService', () => {
 
   describe('verifyEmailToken', () => {
     it('should return valid token payload', async () => {
-      const mockPayload = { sub: '1', uuid: mockUser.uuid, email: mockUser.email };
+      const mockPayload = {
+        sub: '1',
+        uuid: mockUser.uuid,
+        email: mockUser.email,
+      };
       const mockToken = 'valid_token';
       (jwtService.verifyAsync as jest.Mock).mockResolvedValue(mockPayload);
 
@@ -174,9 +191,13 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException for invalid token', async () => {
       const mockToken = 'invalid_token';
-      (jwtService.verifyAsync as jest.Mock).mockRejectedValue(new Error('Invalid token'));
+      (jwtService.verifyAsync as jest.Mock).mockRejectedValue(
+        new Error('Invalid token'),
+      );
 
-      await expect(authService.verifyEmailToken(mockToken)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.verifyEmailToken(mockToken)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 

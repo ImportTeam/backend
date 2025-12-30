@@ -1,4 +1,11 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 
 @Catch(HttpException)
@@ -17,7 +24,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
       .toUpperCase();
   }
 
-  private toErrorCode(status: number, errorType?: string, hasValidationErrors?: boolean) {
+  private toErrorCode(
+    status: number,
+    errorType?: string,
+    hasValidationErrors?: boolean,
+  ) {
     if (hasValidationErrors) return 'VALIDATION_ERROR';
 
     switch (status) {
@@ -37,7 +48,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
         break;
     }
 
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) return 'INTERNAL_SERVER_ERROR';
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR)
+      return 'INTERNAL_SERVER_ERROR';
 
     // fallback
     return this.normalizeErrorTypeToCode(errorType || 'UNKNOWN_ERROR');
@@ -64,10 +76,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     if (typeof exceptionResponse === 'object') {
       const { message, ...rest } = exceptionResponse as any;
-      errorResponse.message = Array.isArray(message) ? message.join(', ') : message;
+      errorResponse.message = Array.isArray(message)
+        ? message.join(', ')
+        : message;
       errorType = rest.error || rest.name || exception.name;
       errorResponse.errorType = errorType || null;
-      
+
       // Validation 에러의 경우 detailed errors 포함
       if (rest.message && Array.isArray(rest.message)) {
         errorResponse.errors = rest.message;
@@ -90,7 +104,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       errorResponse.errorType = errorType || null;
     }
 
-    const code = preferredCode || this.toErrorCode(status, errorType, Array.isArray(details));
+    const code =
+      preferredCode ||
+      this.toErrorCode(status, errorType, Array.isArray(details));
     errorResponse.error = {
       code,
       message: errorResponse.message,
@@ -105,7 +121,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
         exception.stack,
       );
     } else if (status >= HttpStatus.BAD_REQUEST) {
-      this.logger.warn(`[${request.method}] ${request.url} - ${status}: ${errorResponse.message}`);
+      this.logger.warn(
+        `[${request.method}] ${request.url} - ${status}: ${errorResponse.message}`,
+      );
     } else {
       this.logger.log(`[${request.method}] ${request.url} - ${status}`);
     }

@@ -41,7 +41,9 @@ function isLikelyUnknownFieldBadRequest(err: any, fieldName: string): boolean {
   if (!text) return false;
   return (
     text.includes(fieldName) ||
-    text.toLowerCase().includes(`unknown name \"${fieldName.toLowerCase()}\"`) ||
+    text
+      .toLowerCase()
+      .includes(`unknown name \"${fieldName.toLowerCase()}\"`) ||
     text.toLowerCase().includes(`unknown field \"${fieldName.toLowerCase()}\"`)
   );
 }
@@ -130,7 +132,9 @@ function clampScore(score: unknown): number {
 }
 
 function stringifyForPrompt(value: unknown): string {
-  return JSON.stringify(value, (_key, v) => (typeof v === 'bigint' ? v.toString() : v));
+  return JSON.stringify(value, (_key, v) =>
+    typeof v === 'bigint' ? v.toString() : v,
+  );
 }
 
 const MonthlySavingsNarrativeStrictSchema = z.object({
@@ -156,12 +160,17 @@ const BenefitRecommendationLenientSchema = z.object({
 const PaymentMethodSeqCoerceSchema = z
   .union([z.string(), z.number(), z.bigint()])
   .transform((v) => String(v))
-  .refine((s) => /^\d+$/.test(s), { message: 'paymentMethodSeq must be a numeric string' });
+  .refine((s) => /^\d+$/.test(s), {
+    message: 'paymentMethodSeq must be a numeric string',
+  });
 
 const PaymentMethodTop3ItemStrictSchema = z.object({
   paymentMethodSeq: PaymentMethodSeqCoerceSchema,
   score: z.coerce.number(),
-  reasonSummary: z.string().optional().default('추천 사유를 생성하지 못했습니다.'),
+  reasonSummary: z
+    .string()
+    .optional()
+    .default('추천 사유를 생성하지 못했습니다.'),
 });
 
 const PaymentMethodTop3StrictSchema = z.object({
@@ -169,13 +178,15 @@ const PaymentMethodTop3StrictSchema = z.object({
 });
 
 const PaymentMethodTop3LenientSchema = z.object({
-  items: z.array(
-    z.object({
-      paymentMethodSeq: PaymentMethodSeqCoerceSchema,
-      score: z.coerce.number().catch(0),
-      reasonSummary: z.string().catch('추천 사유를 생성하지 못했습니다.'),
-    }),
-  ).catch([]),
+  items: z
+    .array(
+      z.object({
+        paymentMethodSeq: PaymentMethodSeqCoerceSchema,
+        score: z.coerce.number().catch(0),
+        reasonSummary: z.string().catch('추천 사유를 생성하지 못했습니다.'),
+      }),
+    )
+    .catch([]),
 });
 
 export class AiRecommendationGeminiClient implements AiRecommendationClient {
@@ -190,16 +201,25 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       throw new Error('GEMINI_API_KEY is not set');
     }
     this.apiKey = apiKey;
-    this.model = (options?.model ?? process.env.GEMINI_MODEL ?? 'gemini-1.5-flash').trim();
+    this.model = (
+      options?.model ??
+      process.env.GEMINI_MODEL ??
+      'gemini-1.5-flash'
+    ).trim();
   }
 
-  private async generateJson<T>(prompt: string, options?: { schema?: Record<string, any> }): Promise<T> {
+  private async generateJson<T>(
+    prompt: string,
+    options?: { schema?: Record<string, any> },
+  ): Promise<T> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       this.model,
     )}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
 
     const logLevel = (process.env.LOG_LEVEL ?? '').trim().toLowerCase();
-    const shouldIncludeVerboseLogs = ['debug', 'verbose', 'silly'].includes(logLevel);
+    const shouldIncludeVerboseLogs = ['debug', 'verbose', 'silly'].includes(
+      logLevel,
+    );
 
     try {
       const schema = options?.schema;
@@ -220,12 +240,16 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       });
 
       const post = async (useJsonMime: boolean, useSchema: boolean) =>
-        axios.post<GeminiGenerateContentResponse>(url, makeBody(useJsonMime, useSchema), {
-          timeout: 15000,
-          headers: {
-            'Content-Type': 'application/json',
+        axios.post<GeminiGenerateContentResponse>(
+          url,
+          makeBody(useJsonMime, useSchema),
+          {
+            timeout: 15000,
+            headers: {
+              'Content-Type': 'application/json',
+            },
           },
-        });
+        );
 
       let data: GeminiGenerateContentResponse;
       try {
@@ -250,7 +274,10 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
         return json as T;
       } catch (parseErr: any) {
         const normalized = (text ?? '').toString().replace(/\s+/g, ' ').trim();
-        const excerpt = normalized.length > 800 ? `${normalized.slice(0, 800)}...(truncated)` : normalized;
+        const excerpt =
+          normalized.length > 800
+            ? `${normalized.slice(0, 800)}...(truncated)`
+            : normalized;
 
         if (shouldIncludeVerboseLogs) {
           this.logger.error(
@@ -262,7 +289,9 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
           );
         }
 
-        throw new ServiceUnavailableException('AI 추천 서비스를 사용할 수 없습니다.');
+        throw new ServiceUnavailableException(
+          'AI 추천 서비스를 사용할 수 없습니다.',
+        );
       }
     } catch (err: any) {
       const shouldIncludeResponseBody = shouldIncludeVerboseLogs;
@@ -289,7 +318,9 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       this.logger.error(
         `Gemini request failed: status=${String(status ?? 'unknown')} message=${message}`,
       );
-      throw new ServiceUnavailableException('AI 추천 서비스를 사용할 수 없습니다.');
+      throw new ServiceUnavailableException(
+        'AI 추천 서비스를 사용할 수 없습니다.',
+      );
     }
   }
 
@@ -314,28 +345,35 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       `입력(JSON):\n` +
       `${stringifyForPrompt(req)}`;
 
-    const out = await this.generateJson<AiMonthlySavingsNarrativeResponse>(prompt, {
-      schema: {
-        type: 'OBJECT',
-        properties: {
-          summary: { type: 'STRING' },
-          highlights: { type: 'ARRAY', items: { type: 'STRING' } },
+    const out = await this.generateJson<AiMonthlySavingsNarrativeResponse>(
+      prompt,
+      {
+        schema: {
+          type: 'OBJECT',
+          properties: {
+            summary: { type: 'STRING' },
+            highlights: { type: 'ARRAY', items: { type: 'STRING' } },
+          },
+          required: ['summary', 'highlights'],
         },
-        required: ['summary', 'highlights'],
       },
-    });
+    );
 
     const strict = MonthlySavingsNarrativeStrictSchema.safeParse(out);
     const parsed = strict.success
       ? strict.data
       : (() => {
-          this.logger.warn(`MonthlySavingsNarrative schema violation: ${strict.error.message}`);
+          this.logger.warn(
+            `MonthlySavingsNarrative schema violation: ${strict.error.message}`,
+          );
           return MonthlySavingsNarrativeLenientSchema.parse(out);
         })();
 
     return {
       summary: parsed.summary,
-      highlights: parsed.highlights.filter((x) => typeof x === 'string').slice(0, 6),
+      highlights: parsed.highlights
+        .filter((x) => typeof x === 'string')
+        .slice(0, 6),
     };
   }
 
@@ -352,24 +390,29 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       `  "reasonSummary": string\n` +
       `}\n\n` +
       `입력(JSON):\n` +
-        `${stringifyForPrompt(req)}`;
+      `${stringifyForPrompt(req)}`;
 
-    const out = await this.generateJson<AiBenefitRecommendationSummaryResponse>(prompt, {
-      schema: {
-        type: 'OBJECT',
-        properties: {
-          recommendation: { type: 'STRING' },
-          reasonSummary: { type: 'STRING' },
+    const out = await this.generateJson<AiBenefitRecommendationSummaryResponse>(
+      prompt,
+      {
+        schema: {
+          type: 'OBJECT',
+          properties: {
+            recommendation: { type: 'STRING' },
+            reasonSummary: { type: 'STRING' },
+          },
+          required: ['recommendation', 'reasonSummary'],
         },
-        required: ['recommendation', 'reasonSummary'],
       },
-    });
+    );
 
     const strict = BenefitRecommendationStrictSchema.safeParse(out);
     const parsed = strict.success
       ? strict.data
       : (() => {
-          this.logger.warn(`BenefitRecommendationSummary schema violation: ${strict.error.message}`);
+          this.logger.warn(
+            `BenefitRecommendationSummary schema violation: ${strict.error.message}`,
+          );
           return BenefitRecommendationLenientSchema.parse(out);
         })();
 
@@ -379,7 +422,9 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
     };
   }
 
-  async getRecommendedPaymentMethodsTop3(req: AiPaymentMethodTop3Request): Promise<AiPaymentMethodTop3Response> {
+  async getRecommendedPaymentMethodsTop3(
+    req: AiPaymentMethodTop3Request,
+  ): Promise<AiPaymentMethodTop3Response> {
     const prompt =
       `너는 결제수단 추천 AI다. 사용자의 소비 패턴(카테고리/상위 가맹점)과 혜택(크롤링) 요약을 참고하여, 사용자가 보유한 결제수단 중 Top3를 추천해라.\n` +
       `각 추천에는 어떤 할인/적립인지와 어떻게 적용되는지(간략)를 reasonSummary에 포함해라.\n` +
@@ -399,7 +444,7 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
       `- score는 0~100 정수\n` +
       `- items는 최대 3개\n\n` +
       `입력(JSON):\n` +
-        `${stringifyForPrompt(req)}`;
+      `${stringifyForPrompt(req)}`;
 
     const out = await this.generateJson<any>(prompt, {
       schema: {
@@ -426,11 +471,15 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
     const parsed = strict.success
       ? strict.data
       : (() => {
-          this.logger.warn(`PaymentMethodTop3 schema violation: ${strict.error.message}`);
+          this.logger.warn(
+            `PaymentMethodTop3 schema violation: ${strict.error.message}`,
+          );
           return PaymentMethodTop3LenientSchema.parse(out);
         })();
 
-    const allowedSeq = new Set((req?.paymentMethods ?? []).map((pm) => pm.seq.toString()));
+    const allowedSeq = new Set(
+      (req?.paymentMethods ?? []).map((pm) => pm.seq.toString()),
+    );
 
     const items = parsed.items
       .map((item) => {
@@ -438,7 +487,9 @@ export class AiRecommendationGeminiClient implements AiRecommendationClient {
         if (!allowedSeq.has(seqStr)) return null;
 
         const score = clampScore(item.score);
-        const reasonSummary = (item.reasonSummary ?? '').toString().trim() || '추천 사유를 생성하지 못했습니다.';
+        const reasonSummary =
+          (item.reasonSummary ?? '').toString().trim() ||
+          '추천 사유를 생성하지 못했습니다.';
 
         return {
           paymentMethodSeq: BigInt(seqStr),

@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { calcDiscount, isActiveNow, matchMerchant } from './benefit-calculator.util';
+import {
+  calcDiscount,
+  isActiveNow,
+  matchMerchant,
+} from './benefit-calculator.util';
 import { extractOffersFromHtml, ExtractedOffer } from './html-extract.util';
 
 @Injectable()
@@ -25,7 +29,7 @@ export class BenefitsService {
 
       // 가장 큰 절약액 찾기
       let bestSaved = 0;
-      let bestOffer: typeof offers[number] | undefined;
+      let bestOffer: (typeof offers)[number] | undefined;
 
       for (const o of candidateOffers) {
         const saved = calcDiscount(
@@ -65,25 +69,36 @@ export class BenefitsService {
   }
 
   // 추가로 받은 오퍼(확장 추출 결과)를 고려해 비교
-  async top3WithExtraOffers(userUuid: string, merchant: string, amount: number, extra: ExtractedOffer[]) {
+  async top3WithExtraOffers(
+    userUuid: string,
+    merchant: string,
+    amount: number,
+    extra: ExtractedOffer[],
+  ) {
     // DB 오퍼는 compareForUser 로 계산된 각 결제수단별 bestSaved 기준
     const baseline = await this.compareForUser(userUuid, merchant, amount);
 
     // extra offers를 각 결제수단에 적용하여 더 큰 절약이 나오면 교체
     const enhanced = baseline.map((b) => {
-      const matches = extra.filter((e) => e.provider_name.toLowerCase() === b.provider_name.toLowerCase());
+      const matches = extra.filter(
+        (e) => e.provider_name.toLowerCase() === b.provider_name.toLowerCase(),
+      );
       let extraSaved = 0;
       for (const e of matches) {
-  const saved = calcDiscount(amount, e.discount_type, e.discount_value);
+        const saved = calcDiscount(amount, e.discount_type, e.discount_value);
         if (saved > extraSaved) extraSaved = saved;
       }
       if (extraSaved > b.saved) {
-        return { ...b, saved: extraSaved, title: matches[0]?.title ?? b.title } as any;
+        return {
+          ...b,
+          saved: extraSaved,
+          title: matches[0]?.title ?? b.title,
+        } as any;
       }
       return b;
     });
 
-  const sorted = [...enhanced].sort((a, b) => b.saved - a.saved);
-  return sorted.slice(0, 3);
+    const sorted = [...enhanced].sort((a, b) => b.saved - a.saved);
+    return sorted.slice(0, 3);
   }
 }

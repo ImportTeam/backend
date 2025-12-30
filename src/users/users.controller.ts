@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import {
   ApiBearerAuth,
@@ -8,7 +17,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { 
+import {
   ErrorResponseDto,
   UnauthorizedErrorDto,
 } from '../common/dto/swagger-responses.dto';
@@ -34,7 +43,10 @@ export class UsersController {
   @UseGuards(AuthGuard('jwt'))
   @Get('current')
   @ApiBearerAuth()
-  @ApiOperation({ summary: '현재 사용자 정보 조회', description: '현재 로그인한 사용자의 기본 정보를 조회합니다.' })
+  @ApiOperation({
+    summary: '현재 사용자 정보 조회',
+    description: '현재 로그인한 사용자의 기본 정보를 조회합니다.',
+  })
   @ApiResponse({ status: 200, type: MeResponseDto })
   async getMe(@Req() req: any): Promise<MeResponseDto> {
     const user = req.user;
@@ -58,9 +70,15 @@ export class UsersController {
   @UseGuards(AuthGuard('jwt'))
   @Patch('current')
   @ApiBearerAuth()
-  @ApiOperation({ summary: '사용자 정보 수정', description: '현재 로그인한 사용자의 이름/이메일 및 설정을 수정합니다.' })
+  @ApiOperation({
+    summary: '사용자 정보 수정',
+    description: '현재 로그인한 사용자의 이름/이메일 및 설정을 수정합니다.',
+  })
   @ApiResponse({ status: 200, type: UpdateMeResponseDto })
-  async updateMe(@Req() req: any, @Body() dto: UpdateCurrentUserDto): Promise<UpdateMeResponseDto> {
+  async updateMe(
+    @Req() req: any,
+    @Body() dto: UpdateCurrentUserDto,
+  ): Promise<UpdateMeResponseDto> {
     const user = req.user;
     const row = await this.users.updateCurrentUser(BigInt(user.sub), dto);
 
@@ -79,7 +97,10 @@ export class UsersController {
   @UseGuards(AuthGuard('jwt'))
   @Delete('current')
   @ApiBearerAuth()
-  @ApiOperation({ summary: '사용자 계정 삭제', description: '현재 로그인한 사용자의 계정을 삭제합니다.' })
+  @ApiOperation({
+    summary: '사용자 계정 삭제',
+    description: '현재 로그인한 사용자의 계정을 삭제합니다.',
+  })
   async deleteMe(@Req() req: any) {
     const user = req.user;
     await this.users.deleteByUserId(user.uuid || String(user.sub));
@@ -89,17 +110,27 @@ export class UsersController {
   @UseGuards(AuthGuard('jwt'))
   @Patch('current/password')
   @ApiBearerAuth()
-  @ApiOperation({ summary: '비밀번호 변경', description: '현재 비밀번호 확인 후 새 비밀번호로 변경합니다.' })
+  @ApiOperation({
+    summary: '비밀번호 변경',
+    description: '현재 비밀번호 확인 후 새 비밀번호로 변경합니다.',
+  })
   async changeMyPassword(@Req() req: any, @Body() dto: ChangePasswordDto) {
     const user = req.user;
-    await this.users.changePassword(BigInt(user.sub), dto.currentPassword, dto.newPassword);
+    await this.users.changePassword(
+      BigInt(user.sub),
+      dto.currentPassword,
+      dto.newPassword,
+    );
     return { message: '비밀번호가 변경되었습니다.' };
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Get('sessions')
   @ApiBearerAuth()
-  @ApiOperation({ summary: '내 세션 목록', description: '현재 사용자 세션 목록을 조회합니다(토큰은 노출하지 않음).' })
+  @ApiOperation({
+    summary: '내 세션 목록',
+    description: '현재 사용자 세션 목록을 조회합니다(토큰은 노출하지 않음).',
+  })
   @ApiResponse({ status: 200, type: UserSessionDto, isArray: true })
   async listSessions(@Req() req: any): Promise<UserSessionDto[]> {
     const user = req.user;
@@ -116,7 +147,10 @@ export class UsersController {
   @Delete('sessions/:seq')
   @ApiBearerAuth()
   @ApiParam({ name: 'seq', required: true, description: '세션 seq' })
-  @ApiOperation({ summary: '세션 강제 로그아웃', description: '특정 세션을 무효화합니다.' })
+  @ApiOperation({
+    summary: '세션 강제 로그아웃',
+    description: '특정 세션을 무효화합니다.',
+  })
   async revokeSession(@Req() req: any, @Param('seq') seq: string) {
     const user = req.user;
     return this.users.revokeSessionBySeq(BigInt(user.sub), seq);

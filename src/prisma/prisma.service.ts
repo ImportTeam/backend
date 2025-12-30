@@ -1,8 +1,16 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger('PrismaService');
 
   private getSlowQueryThresholdMs(): number {
@@ -29,11 +37,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       .toLowerCase()
       .startsWith('f');
 
-    const logLevels: any[] = process.env.NODE_ENV === 'development'
-      ? enableQueryLog
-        ? ['query', 'info', 'warn', 'error']
-        : ['info', 'warn', 'error']
-      : ['warn', 'error'];
+    const logLevels: any[] =
+      process.env.NODE_ENV === 'development'
+        ? enableQueryLog
+          ? ['query', 'info', 'warn', 'error']
+          : ['info', 'warn', 'error']
+        : ['warn', 'error'];
 
     super({
       log: logLevels,
@@ -66,7 +75,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         if (!Number.isFinite(durationMs)) return;
 
         if (durationMs > slowQueryMs) {
-          const query = includeQueryText && typeof e?.query === 'string' ? e.query : '';
+          const query =
+            includeQueryText && typeof e?.query === 'string' ? e.query : '';
           this.logger.warn(
             `Slow query detected (${durationMs}ms)${query ? `: ${query}` : ''}`,
           );

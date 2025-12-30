@@ -25,13 +25,17 @@ export class RecommendedPaymentMethodItemDto {
   value?: number;
 
   @ApiProperty({
-    example: '최근 6개월 쇼핑 지출이 높고, 해당 카드사의 활성 혜택이 많아 우선 추천합니다.',
+    example:
+      '최근 6개월 쇼핑 지출이 높고, 해당 카드사의 활성 혜택이 많아 우선 추천합니다.',
     description: '추천 사유(요약)',
   })
   reasonSummary: string;
 }
 
 export class RecommendedPaymentMethodsTop3ResponseDto {
-  @ApiProperty({ type: [RecommendedPaymentMethodItemDto], description: '추천 결제수단 Top3' })
+  @ApiProperty({
+    type: [RecommendedPaymentMethodItemDto],
+    description: '추천 결제수단 Top3',
+  })
   data: RecommendedPaymentMethodItemDto[];
 }

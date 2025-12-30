@@ -19,7 +19,11 @@ export class MeResponseDto {
   @ApiPropertyOptional({ example: null, nullable: true })
   social_id?: string | null;
 
-  @ApiPropertyOptional({ example: '5', description: '기본 결제수단 seq(BigInt -> string)', nullable: true })
+  @ApiPropertyOptional({
+    example: '5',
+    description: '기본 결제수단 seq(BigInt -> string)',
+    nullable: true,
+  })
   preferred_payment_seq?: string | null;
 
   @ApiProperty({ example: '2025-01-10T09:30:00.000Z' })

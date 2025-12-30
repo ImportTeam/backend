@@ -12,7 +12,7 @@ export class AdminService {
   async autoResetSequences() {
     try {
       const needsReset = await this.checkSequenceGaps();
-      
+
       if (!needsReset) {
         this.log.debug('시퀀스 정리가 필요하지 않습니다. 스킵합니다.');
         return;
@@ -80,7 +80,10 @@ export class AdminService {
     }
   }
 
-  private async syncSequence(tableName: 'users' | 'payment_methods' | 'user_sessions', columnName: 'seq') {
+  private async syncSequence(
+    tableName: 'users' | 'payment_methods' | 'user_sessions',
+    columnName: 'seq',
+  ) {
     // 식별자 바인딩이 어려워 화이트리스트 기반 문자열 구성
     const sql = `
       DO $$
@@ -99,9 +102,13 @@ export class AdminService {
   }
 
   // MySQL용: AUTO_INCREMENT 값을 MAX(seq) + 1 로 맞춤
-  private async syncSequenceMySQL(tableName: 'users' | 'payment_methods' | 'user_sessions') {
+  private async syncSequenceMySQL(
+    tableName: 'users' | 'payment_methods' | 'user_sessions',
+  ) {
     // 화이트리스트로 tableName을 제한했으므로 문자열 직접 사용
-    const maxRes: any = await this.prisma.$queryRawUnsafe(`SELECT COALESCE(MAX(seq), 0) as max_id FROM ${tableName};`);
+    const maxRes: any = await this.prisma.$queryRawUnsafe(
+      `SELECT COALESCE(MAX(seq), 0) as max_id FROM ${tableName};`,
+    );
     const maxId = Number(maxRes[0]?.max_id ?? 0);
     const next = Math.max(1, maxId + 1);
     const sql = `ALTER TABLE ${tableName} AUTO_INCREMENT = ${next};`;
@@ -113,7 +120,9 @@ export class AdminService {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         // 락 획득: 타임아웃 10초
-        const got: any = await this.prisma.$queryRawUnsafe(`SELECT GET_LOCK('${lockName}', 10) as got;`);
+        const got: any = await this.prisma.$queryRawUnsafe(
+          `SELECT GET_LOCK('${lockName}', 10) as got;`,
+        );
         const acquired = Number(got?.[0]?.got ?? 0) === 1;
         if (!acquired) {
           throw new Error(`GET_LOCK(${lockName}) 실패`);
@@ -124,7 +133,9 @@ export class AdminService {
 
         // 락 해제
         try {
-          await this.prisma.$queryRawUnsafe(`SELECT RELEASE_LOCK('${lockName}') as released;`);
+          await this.prisma.$queryRawUnsafe(
+            `SELECT RELEASE_LOCK('${lockName}') as released;`,
+          );
         } catch (releaseErr) {
           this.log.debug('RELEASE_LOCK 실패 (무시):', releaseErr);
         }
@@ -133,12 +144,20 @@ export class AdminService {
       } catch (error) {
         // 안전하게 락을 해제 시도
         try {
-          await this.prisma.$queryRawUnsafe(`SELECT RELEASE_LOCK('${lockName}')`);
+          await this.prisma.$queryRawUnsafe(
+            `SELECT RELEASE_LOCK('${lockName}')`,
+          );
         } catch (_) {}
 
         // Prisma의 Raw 실패는 PrismaClientKnownRequestError로 래핑됩니다. MySQL 데드락 코드는 1213입니다.
-        const code = (error && error.meta && error.meta.code) || (error && error.code) || null;
-        this.log.error(`AUTO_INCREMENT 설정 시도 실패 (${tableName}) 시도=${attempt}`, error);
+        const code =
+          (error && error.meta && error.meta.code) ||
+          (error && error.code) ||
+          null;
+        this.log.error(
+          `AUTO_INCREMENT 설정 시도 실패 (${tableName}) 시도=${attempt}`,
+          error,
+        );
 
         // 데드락일 경우 재시도 (지수 백오프)
         if ((code === '1213' || code === 1213) && attempt < maxAttempts) {
@@ -149,7 +168,9 @@ export class AdminService {
 
         // 재시도해도 안 되거나 다른 에러인 경우, 현재 프로세스 상태를 찍어 진단에 도움
         try {
-          const procs: any = await this.prisma.$queryRawUnsafe(`SELECT ID, USER, HOST, DB, COMMAND, TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST LIMIT 20;`);
+          const procs: any = await this.prisma.$queryRawUnsafe(
+            `SELECT ID, USER, HOST, DB, COMMAND, TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST LIMIT 20;`,
+          );
           this.log.debug('MySQL processlist snapshot:', JSON.stringify(procs));
         } catch (plErr) {
           this.log.debug('processlist 조회 실패:', plErr);
@@ -163,7 +184,8 @@ export class AdminService {
 
   private getDbProvider(): 'postgresql' | 'mysql' {
     const url = process.env.DATABASE_URL || '';
-    if (url.startsWith('mysql://') || url.startsWith('mysql2://')) return 'mysql';
+    if (url.startsWith('mysql://') || url.startsWith('mysql2://'))
+      return 'mysql';
     return 'postgresql';
   }
 }

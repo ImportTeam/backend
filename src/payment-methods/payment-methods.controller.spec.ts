@@ -41,4 +41,3 @@ describe('PaymentMethodsController', () => {
     expect(controller.remove).toBeDefined();
   });
 });
-

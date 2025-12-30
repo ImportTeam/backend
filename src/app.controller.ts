@@ -1,5 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiExtraModels, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiExtraModels,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AppService } from './app.service';
 import * as os from 'os';
 import { SystemHealthResponseDto } from './common/dto/system-health-response.dto';

@@ -4,7 +4,8 @@ import { IsOptional, IsString, MaxLength } from 'class-validator';
 export class StartCardRegistrationRequestDto {
   @ApiPropertyOptional({
     example: 'https://picsel.example.com/payment-methods/add/result',
-    description: 'FE에서 카드 등록 완료 후 이동할 URL(선택). 현재는 더미 처리됩니다.',
+    description:
+      'FE에서 카드 등록 완료 후 이동할 URL(선택). 현재는 더미 처리됩니다.',
   })
   @IsOptional()
   @IsString({ message: 'returnUrl은 문자열이어야 합니다.' })
@@ -21,10 +22,14 @@ export class StartCardRegistrationResponseDto {
 
   @ApiProperty({
     example: 'https://example.com/popbill/card-registration (stub)',
-    description: '다음 액션 URL(현재는 더미). FE는 이 URL로 이동하거나 WebView를 띄우는 플로우로 연동합니다.',
+    description:
+      '다음 액션 URL(현재는 더미). FE는 이 URL로 이동하거나 WebView를 띄우는 플로우로 연동합니다.',
   })
   nextActionUrl: string;
 
-  @ApiProperty({ example: '2025-12-15T10:10:10.000Z', description: '요청 만료 시각(ISO 문자열)' })
+  @ApiProperty({
+    example: '2025-12-15T10:10:10.000Z',
+    description: '요청 만료 시각(ISO 문자열)',
+  })
   expiresAt: string;
 }

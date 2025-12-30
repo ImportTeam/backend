@@ -28,7 +28,13 @@ import { NaverStrategy } from './strategies/naver.strategy';
       },
     }),
   ],
-  providers: [AuthService, JwtStrategy, GoogleStrategy, KakaoStrategy, NaverStrategy],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    GoogleStrategy,
+    KakaoStrategy,
+    NaverStrategy,
+  ],
   controllers: [AuthController],
 })
 export class AuthModule {}

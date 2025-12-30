@@ -1,6 +1,13 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { BenefitsService } from './benefits.service';
-import { ApiOperation, ApiQuery, ApiTags, ApiResponse, ApiBody, ApiExtraModels } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+  ApiResponse,
+  ApiBody,
+  ApiExtraModels,
+} from '@nestjs/swagger';
 import {
   BenefitsCompareResponseDto,
   ErrorResponseDto,
@@ -175,7 +182,13 @@ export class BenefitsController {
     type: ErrorResponseDto,
   })
   async top3FromHtml(
-    @Body() body: { userUuid: string; merchant: string; amount: number; html: string },
+    @Body()
+    body: {
+      userUuid: string;
+      merchant: string;
+      amount: number;
+      html: string;
+    },
   ) {
     const extra = this.benefits.extractFromHtml(body.html);
     return this.benefits.top3WithExtraOffers(

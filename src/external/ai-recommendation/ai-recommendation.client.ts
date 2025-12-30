@@ -8,14 +8,21 @@ export interface AiBenefitRecommendationSummaryRequest {
       savingsAmount: number;
     }>;
     topMerchant?: { merchantName: string; totalSpent: number } | null;
-    topPaymentMethod?: { paymentMethodName: string; thisMonthTotalAmount: number } | null;
+    topPaymentMethod?: {
+      paymentMethodName: string;
+      thisMonthTotalAmount: number;
+    } | null;
   };
   recentSixMonthsSummary: {
     totalSpent: number;
     totalBenefit: number;
     byCategory: Array<{ category: string; spent: number }>;
   };
-  paymentMethods: Array<{ seq: bigint; providerName: string; alias?: string | null }>;
+  paymentMethods: Array<{
+    seq: bigint;
+    providerName: string;
+    alias?: string | null;
+  }>;
   benefitOffersSummary?: Array<{
     providerName: string;
     offers: Array<{
@@ -41,7 +48,11 @@ export interface AiPaymentMethodTop3Request {
     topMerchants: Array<{ merchantName: string; spent: number }>;
     byCategory: Array<{ category: string; spent: number }>;
   };
-  paymentMethods: Array<{ seq: bigint; providerName: string; alias?: string | null }>;
+  paymentMethods: Array<{
+    seq: bigint;
+    providerName: string;
+    alias?: string | null;
+  }>;
   benefitOffersSummary?: Array<{
     providerName: string;
     offers: Array<{

@@ -20,11 +20,15 @@ export class CustomLoggerService implements LoggerService {
       new winston.transports.Console({
         format: winston.format.combine(
           winston.format.colorize(),
-          winston.format.printf(({ level, message, timestamp, context, ...meta }) => {
-            const metaStr = Object.keys(meta).length ? JSON.stringify(meta) : '';
-            const ctx = context ? `[${context}] ` : '';
-            return `${timestamp} ${level}: ${ctx}${message} ${metaStr}`;
-          }),
+          winston.format.printf(
+            ({ level, message, timestamp, context, ...meta }) => {
+              const metaStr = Object.keys(meta).length
+                ? JSON.stringify(meta)
+                : '';
+              const ctx = context ? `[${context}] ` : '';
+              return `${timestamp} ${level}: ${ctx}${message} ${metaStr}`;
+            },
+          ),
         ),
       }),
     );

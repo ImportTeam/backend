@@ -40,14 +40,14 @@ describe('AuthController', () => {
   });
 
   it('should throw UnauthorizedException when refresh body is missing', async () => {
-    await expect(controller.refresh({} as any, undefined)).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(
+      controller.refresh({} as any, undefined),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('should throw UnauthorizedException when logout body is missing', async () => {
-    await expect(controller.logout({} as any, undefined)).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(
+      controller.logout({} as any, undefined),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });

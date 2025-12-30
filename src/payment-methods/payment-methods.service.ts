@@ -1,13 +1,19 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
 import { endOfMonth, startOfMonth, subMonths } from 'date-fns';
-import { 
-  encrypt, 
-  getLast4Digits, 
-  validateCardNumber, 
-  detectCardBrand 
+import {
+  encrypt,
+  getLast4Digits,
+  validateCardNumber,
+  detectCardBrand,
 } from '../common/encryption.util';
 import { POPBILL_CLIENT } from '../external';
 import type { PopbillClient } from '../external/popbill/popbill.client';
@@ -47,9 +53,9 @@ export class PaymentMethodsService {
         const expiryDate = new Date(
           parseInt(dto.expiry_year),
           parseInt(dto.expiry_month) - 1,
-          1
+          1,
         );
-        
+
         if (now > expiryDate) {
           throw new BadRequestException('만료된 카드입니다.');
         }
@@ -144,9 +150,9 @@ export class PaymentMethodsService {
       const expiryDate = new Date(
         parseInt(dto.expiry_year),
         parseInt(dto.expiry_month) - 1,
-        1
+        1,
       );
-      
+
       if (now > expiryDate) {
         throw new BadRequestException('만료된 날짜로 설정할 수 없습니다.');
       }
@@ -220,11 +226,11 @@ export class PaymentMethodsService {
     const statistics = {
       total: paymentMethods.length,
       byType: {} as Record<string, number>,
-      primary: paymentMethods.find(pm => pm.is_primary) || null,
+      primary: paymentMethods.find((pm) => pm.is_primary) || null,
     };
 
     // 타입별 개수 집계
-    paymentMethods.forEach(pm => {
+    paymentMethods.forEach((pm) => {
       statistics.byType[pm.type] = (statistics.byType[pm.type] || 0) + 1;
     });
 
@@ -288,9 +294,11 @@ export class PaymentMethodsService {
     const avgAmount = this.toNumber(sixMonthsAgg._avg.amount ?? 0);
 
     const limit = await this.popbillClient.getCardLimit(userUuid, seq);
-    const fallbackEstimatedRemaining = avgAmount > 0 ? Math.max(0, avgAmount * 3) : undefined;
+    const fallbackEstimatedRemaining =
+      avgAmount > 0 ? Math.max(0, avgAmount * 3) : undefined;
 
-    const paymentMethodName = pm.alias ?? `${pm.provider_name}(${pm.last_4_nums})`;
+    const paymentMethodName =
+      pm.alias ?? `${pm.provider_name}(${pm.last_4_nums})`;
 
     return {
       paymentMethodId: Number(pm.seq),
@@ -305,7 +313,8 @@ export class PaymentMethodsService {
       },
       limit: {
         limitAmount: limit.limitAmount,
-        estimatedRemainingAmount: limit.estimatedRemainingAmount ?? fallbackEstimatedRemaining,
+        estimatedRemainingAmount:
+          limit.estimatedRemainingAmount ?? fallbackEstimatedRemaining,
         basisMessage:
           limit.basisMessage ||
           (fallbackEstimatedRemaining !== undefined
@@ -315,4 +324,3 @@ export class PaymentMethodsService {
     };
   }
 }
-

@@ -17,7 +17,9 @@ import { AiRecommendationGeminiClient } from './ai-recommendation/ai-recommendat
       useFactory: (config: ConfigService) => {
         const apiKey = (config.get<string>('GEMINI_API_KEY') ?? '').trim();
         if (!apiKey) {
-          throw new Error('GEMINI_API_KEY is required to use AI recommendation features.');
+          throw new Error(
+            'GEMINI_API_KEY is required to use AI recommendation features.',
+          );
         }
 
         return new AiRecommendationGeminiClient({

@@ -4,10 +4,16 @@ export class RecentSiteTransactionItemDto {
   @ApiProperty({ example: '쿠팡', description: '사이트/거래처(가맹점) 이름' })
   merchantName: string;
 
-  @ApiProperty({ example: '2025-12-10T11:22:33.000Z', description: '결제일(ISO 문자열)' })
+  @ApiProperty({
+    example: '2025-12-10T11:22:33.000Z',
+    description: '결제일(ISO 문자열)',
+  })
   paidAt: string;
 
-  @ApiProperty({ example: '내 신용카드(1111)', description: '사용한 결제수단 표시명' })
+  @ApiProperty({
+    example: '내 신용카드(1111)',
+    description: '사용한 결제수단 표시명',
+  })
   paymentMethodName: string;
 
   @ApiProperty({ example: 32000, description: '결제 금액(원)' })
@@ -18,7 +24,10 @@ export class RecentSiteTransactionItemDto {
 }
 
 export class RecentSiteTransactionsResponseDto {
-  @ApiProperty({ type: [RecentSiteTransactionItemDto], description: '최근 결제 내역 목록' })
+  @ApiProperty({
+    type: [RecentSiteTransactionItemDto],
+    description: '최근 결제 내역 목록',
+  })
   data: RecentSiteTransactionItemDto[];
 
   @ApiProperty({

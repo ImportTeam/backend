@@ -1,7 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AuthUserDto {
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: '사용자 UUID' })
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: '사용자 UUID',
+  })
   uuid: string;
 
   @ApiProperty({ example: 'test@example.com', description: '사용자 이메일' })
@@ -10,7 +13,11 @@ export class AuthUserDto {
   @ApiProperty({ example: '홍길동', description: '사용자 이름' })
   name: string;
 
-  @ApiProperty({ example: 'https://example.com/avatar.jpg', nullable: true, description: '프로필 이미지' })
+  @ApiProperty({
+    example: 'https://example.com/avatar.jpg',
+    nullable: true,
+    description: '프로필 이미지',
+  })
   profileImage?: string | null;
 }
 
@@ -80,7 +87,10 @@ export class PaymentMethodResponseDto {
   @ApiProperty({ example: 1, description: '결제 수단 시퀀스' })
   seq: number;
 
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440001', description: '결제 수단 UUID' })
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440001',
+    description: '결제 수단 UUID',
+  })
   uuid: string;
 
   @ApiProperty({ example: '1111', description: '카드 마지막 4자리' })
@@ -95,7 +105,10 @@ export class PaymentMethodResponseDto {
   @ApiProperty({ example: true, description: '기본 결제 수단 여부' })
   isPrimary: boolean;
 
-  @ApiProperty({ example: '2025-11-12T13:59:44.000Z', description: '등록 일시' })
+  @ApiProperty({
+    example: '2025-11-12T13:59:44.000Z',
+    description: '등록 일시',
+  })
   createdAt: string;
 }
 
@@ -131,7 +144,11 @@ export class PaymentMethodsListResponseDto {
 }
 
 export class BenefitItemDto {
-  @ApiProperty({ example: 'PERCENT', enum: ['PERCENT', 'FLAT'], description: '할인 유형' })
+  @ApiProperty({
+    example: 'PERCENT',
+    enum: ['PERCENT', 'FLAT'],
+    description: '할인 유형',
+  })
   type: string;
 
   @ApiProperty({ example: 2, description: '할인 값 (PERCENT: %, FLAT: 원)' })
@@ -210,7 +227,10 @@ export class PaymentTransactionDto {
   @ApiProperty({ example: 'KRW' })
   currency: string;
 
-  @ApiProperty({ example: 'COMPLETED', enum: ['PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'] })
+  @ApiProperty({
+    example: 'COMPLETED',
+    enum: ['PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'],
+  })
   status: string;
 
   @ApiProperty({ example: '1000', description: '혜택액' })
@@ -248,10 +268,16 @@ export class ErrorResponseDto {
   @ApiProperty({ example: 400, description: 'HTTP 상태 코드' })
   statusCode: number;
 
-  @ApiProperty({ example: '이메일이 이미 존재합니다', description: '에러 메시지(호환용)' })
+  @ApiProperty({
+    example: '이메일이 이미 존재합니다',
+    description: '에러 메시지(호환용)',
+  })
   message: string;
 
-  @ApiProperty({ example: 'ConflictException', description: '에러 타입(호환용)' })
+  @ApiProperty({
+    example: 'ConflictException',
+    description: '에러 타입(호환용)',
+  })
   errorType: string;
 
   @ApiProperty({

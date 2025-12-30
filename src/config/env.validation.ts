@@ -1,5 +1,10 @@
 import { plainToInstance } from 'class-transformer';
-import { IsNotEmpty, IsString, validateSync, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  validateSync,
+  IsOptional,
+} from 'class-validator';
 
 class EnvironmentVariables {
   @IsNotEmpty()
@@ -86,9 +91,12 @@ export function validate(config: Record<string, any>) {
 
   if (errors.length > 0) {
     const missingVars = errors
-      .map((error) => `${error.property}: ${Object.values(error.constraints || {}).join(', ')}`)
+      .map(
+        (error) =>
+          `${error.property}: ${Object.values(error.constraints || {}).join(', ')}`,
+      )
       .join('\n  ');
-    
+
     throw new Error(
       `❌ Missing or invalid environment variables:\n  ${missingVars}\n\nPlease check your .env file or environment variables.`,
     );

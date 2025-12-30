@@ -1,8 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentMethodsService } from './payment-methods.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { CreatePaymentMethodDto, PaymentType } from './dto/create-payment-method.dto';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  CreatePaymentMethodDto,
+  PaymentType,
+} from './dto/create-payment-method.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
 import { POPBILL_CLIENT } from '../external';
 
@@ -44,7 +51,8 @@ describe('PaymentMethodsService', () => {
           useValue: {
             startCardRegistration: jest.fn(async () => ({
               requestId: 'popbill_stub_test',
-              nextActionUrl: 'https://example.com/popbill/card-registration (stub)',
+              nextActionUrl:
+                'https://example.com/popbill/card-registration (stub)',
             })),
             getCardLimit: jest.fn(async () => ({
               cardLimit: null,
@@ -92,7 +100,9 @@ describe('PaymentMethodsService', () => {
         is_primary: false,
       };
 
-      (prismaService.payment_methods.create as jest.Mock).mockResolvedValue(mockPaymentMethod);
+      (prismaService.payment_methods.create as jest.Mock).mockResolvedValue(
+        mockPaymentMethod,
+      );
 
       const result = await service.create(mockUserUuid, createDto);
 
@@ -112,7 +122,9 @@ describe('PaymentMethodsService', () => {
         is_primary: false,
       };
 
-      await expect(service.create(mockUserUuid, createDto)).rejects.toThrow(BadRequestException);
+      await expect(service.create(mockUserUuid, createDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException for expired card', async () => {
@@ -127,7 +139,9 @@ describe('PaymentMethodsService', () => {
         is_primary: false,
       };
 
-      await expect(service.create(mockUserUuid, createDto)).rejects.toThrow(BadRequestException);
+      await expect(service.create(mockUserUuid, createDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should set is_primary to false when adding new primary card', async () => {
@@ -142,7 +156,9 @@ describe('PaymentMethodsService', () => {
         is_primary: true,
       };
 
-      (prismaService.payment_methods.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
+      (prismaService.payment_methods.updateMany as jest.Mock).mockResolvedValue(
+        { count: 1 },
+      );
       (prismaService.payment_methods.create as jest.Mock).mockResolvedValue({
         ...mockPaymentMethod,
         is_primary: true,
@@ -160,8 +176,13 @@ describe('PaymentMethodsService', () => {
 
   describe('findAllByUser', () => {
     it('should return all payment methods for a user', async () => {
-      const paymentMethods = [mockPaymentMethod, { ...mockPaymentMethod, seq: BigInt(2) }];
-      (prismaService.payment_methods.findMany as jest.Mock).mockResolvedValue(paymentMethods);
+      const paymentMethods = [
+        mockPaymentMethod,
+        { ...mockPaymentMethod, seq: BigInt(2) },
+      ];
+      (prismaService.payment_methods.findMany as jest.Mock).mockResolvedValue(
+        paymentMethods,
+      );
 
       const result = await service.findAllByUser(mockUserUuid);
 
@@ -175,7 +196,9 @@ describe('PaymentMethodsService', () => {
 
   describe('findOne', () => {
     it('should return a payment method by ID', async () => {
-      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(mockPaymentMethod);
+      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(
+        mockPaymentMethod,
+      );
 
       const result = await service.findOne(mockSeq, mockUserUuid);
 
@@ -186,19 +209,27 @@ describe('PaymentMethodsService', () => {
     });
 
     it('should throw NotFoundException if payment method not found', async () => {
-      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(null);
+      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(
+        null,
+      );
 
-      await expect(service.findOne(BigInt(999), mockUserUuid)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(BigInt(999), mockUserUuid)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException if user does not own the payment method', async () => {
       const otherUserUuid = '550e8400-e29b-41d4-a716-446655440001';
-      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue({
-        ...mockPaymentMethod,
-        user_uuid: otherUserUuid,
-      });
+      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(
+        {
+          ...mockPaymentMethod,
+          user_uuid: otherUserUuid,
+        },
+      );
 
-      await expect(service.findOne(mockSeq, mockUserUuid)).rejects.toThrow(ForbiddenException);
+      await expect(service.findOne(mockSeq, mockUserUuid)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -209,7 +240,9 @@ describe('PaymentMethodsService', () => {
         expiry_year: '2099',
       };
 
-      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(mockPaymentMethod);
+      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(
+        mockPaymentMethod,
+      );
       (prismaService.payment_methods.update as jest.Mock).mockResolvedValue({
         ...mockPaymentMethod,
         expiry_month: '11',
@@ -229,13 +262,15 @@ describe('PaymentMethodsService', () => {
         expiry_year: '2099',
       };
 
-      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue({
-        ...mockPaymentMethod,
-        user_uuid: otherUserUuid,
-      });
+      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(
+        {
+          ...mockPaymentMethod,
+          user_uuid: otherUserUuid,
+        },
+      );
 
       await expect(
-        service.update(mockSeq, mockUserUuid, updateDto)
+        service.update(mockSeq, mockUserUuid, updateDto),
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -243,8 +278,12 @@ describe('PaymentMethodsService', () => {
   describe('remove', () => {
     it('should delete a payment method', async () => {
       const singleMethod = { ...mockPaymentMethod, is_primary: false };
-      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(singleMethod);
-      (prismaService.payment_methods.delete as jest.Mock).mockResolvedValue(singleMethod);
+      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(
+        singleMethod,
+      );
+      (prismaService.payment_methods.delete as jest.Mock).mockResolvedValue(
+        singleMethod,
+      );
 
       const result = await service.remove(mockSeq, mockUserUuid);
 
@@ -253,20 +292,28 @@ describe('PaymentMethodsService', () => {
     });
 
     it('should throw BadRequestException if deleting primary payment method with others', async () => {
-      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(mockPaymentMethod);
+      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(
+        mockPaymentMethod,
+      );
       (prismaService.payment_methods.count as jest.Mock).mockResolvedValue(2);
 
-      await expect(service.remove(mockSeq, mockUserUuid)).rejects.toThrow(BadRequestException);
+      await expect(service.remove(mockSeq, mockUserUuid)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw ForbiddenException if user does not own the payment method', async () => {
       const otherUserUuid = '550e8400-e29b-41d4-a716-446655440001';
-      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue({
-        ...mockPaymentMethod,
-        user_uuid: otherUserUuid,
-      });
+      (prismaService.payment_methods.findUnique as jest.Mock).mockResolvedValue(
+        {
+          ...mockPaymentMethod,
+          user_uuid: otherUserUuid,
+        },
+      );
 
-      await expect(service.remove(mockSeq, mockUserUuid)).rejects.toThrow(ForbiddenException);
+      await expect(service.remove(mockSeq, mockUserUuid)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -275,7 +322,10 @@ describe('PaymentMethodsService', () => {
       (prismaService.payment_methods.findUnique as jest.Mock)
         .mockResolvedValueOnce(mockPaymentMethod)
         .mockResolvedValueOnce(mockPaymentMethod);
-      (prismaService.$transaction as jest.Mock).mockResolvedValue([{ count: 1 }, mockPaymentMethod]);
+      (prismaService.$transaction as jest.Mock).mockResolvedValue([
+        { count: 1 },
+        mockPaymentMethod,
+      ]);
 
       const result = await service.setPrimary(mockSeq, mockUserUuid);
 
@@ -286,8 +336,13 @@ describe('PaymentMethodsService', () => {
 
   describe('getStatistics', () => {
     it('should return payment method statistics', async () => {
-      const methods = [mockPaymentMethod, { ...mockPaymentMethod, seq: BigInt(2), type: PaymentType.PAYPAL }];
-      (prismaService.payment_methods.findMany as jest.Mock).mockResolvedValue(methods);
+      const methods = [
+        mockPaymentMethod,
+        { ...mockPaymentMethod, seq: BigInt(2), type: PaymentType.PAYPAL },
+      ];
+      (prismaService.payment_methods.findMany as jest.Mock).mockResolvedValue(
+        methods,
+      );
 
       const result = await service.getStatistics(mockUserUuid);
 

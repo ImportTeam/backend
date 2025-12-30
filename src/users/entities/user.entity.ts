@@ -4,10 +4,17 @@ export class UserEntity {
   @ApiProperty({ description: '사용자 시퀀스 ID', example: '1' })
   seq: string;
 
-  @ApiProperty({ description: '사용자 UUID', example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiProperty({
+    description: '사용자 UUID',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
   uuid: string;
 
-  @ApiProperty({ description: '이메일', example: 'test@example.com', nullable: true })
+  @ApiProperty({
+    description: '이메일',
+    example: 'test@example.com',
+    nullable: true,
+  })
   email?: string | null;
 
   @ApiProperty({ description: '이름', example: '홍길동' })

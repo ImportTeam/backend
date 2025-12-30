@@ -1,10 +1,19 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
-import { BadRequestException, HttpException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { buildOAuthStateFromHttpRequest } from '../guards/oauth-state.util';
 
-function normalizeOAuthCallbackUrl(callbackUrl: string, provider: string): string {
+function normalizeOAuthCallbackUrl(
+  callbackUrl: string,
+  provider: string,
+): string {
   try {
     const url = new URL(callbackUrl);
     const expectedPath = `/api/auth/${provider}/callback`;
@@ -23,14 +32,27 @@ function normalizeOAuthCallbackUrl(callbackUrl: string, provider: string): strin
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private readonly configService: ConfigService) {
-    const prodCallbackURL = configService.get<string>('GOOGLE_REDIRECT_PROD_URI');
-    const devCallbackURL = configService.get<string>('GOOGLE_REDIRECT_DEV_URI') || 'http://localhost:3000/api/auth/google/callback';
-    const nodeEnv = (configService.get<string>('NODE_ENV') ?? process.env.NODE_ENV ?? '')
+    const prodCallbackURL = configService.get<string>(
+      'GOOGLE_REDIRECT_PROD_URI',
+    );
+    const devCallbackURL =
+      configService.get<string>('GOOGLE_REDIRECT_DEV_URI') ||
+      'http://localhost:3000/api/auth/google/callback';
+    const nodeEnv = (
+      configService.get<string>('NODE_ENV') ??
+      process.env.NODE_ENV ??
+      ''
+    )
       .trim()
       .toLowerCase();
     const isProd = nodeEnv === 'production';
-    const selectedCallbackURL = isProd ? (prodCallbackURL || devCallbackURL) : devCallbackURL;
-    const callbackURL = normalizeOAuthCallbackUrl(selectedCallbackURL, 'google');
+    const selectedCallbackURL = isProd
+      ? prodCallbackURL || devCallbackURL
+      : devCallbackURL;
+    const callbackURL = normalizeOAuthCallbackUrl(
+      selectedCallbackURL,
+      'google',
+    );
 
     if (!isProd) {
       const logger = new Logger(GoogleStrategy.name);
@@ -47,10 +69,18 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
   authenticate(req: any, options: any = {}): void {
     const state = buildOAuthStateFromHttpRequest(req);
-    return (Strategy as any).prototype.authenticate.call(this, req, { ...options, state });
+    return (Strategy as any).prototype.authenticate.call(this, req, {
+      ...options,
+      state,
+    });
   }
 
-  async validate(accessToken: string, refreshToken: string, profile: any, done: VerifyCallback): Promise<any> {
+  async validate(
+    accessToken: string,
+    refreshToken: string,
+    profile: any,
+    done: VerifyCallback,
+  ): Promise<any> {
     try {
       const { id, name, emails, photos } = profile;
       const email = emails?.[0]?.value;
@@ -73,7 +103,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       return done(null, user);
     } catch (error) {
       if (error instanceof HttpException) return done(error, undefined);
-      return done(new UnauthorizedException('구글 로그인에 실패했습니다.'), undefined);
+      return done(
+        new UnauthorizedException('구글 로그인에 실패했습니다.'),
+        undefined,
+      );
     }
   }
 }

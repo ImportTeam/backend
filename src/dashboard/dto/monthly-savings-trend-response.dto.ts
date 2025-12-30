@@ -21,7 +21,10 @@ export class MonthlySavingsTrendItemDto {
   })
   spent?: number;
 
-  @ApiProperty({ example: 45000, description: '해당 월 적용 혜택(절약) 합계(원)' })
+  @ApiProperty({
+    example: 45000,
+    description: '해당 월 적용 혜택(절약) 합계(원)',
+  })
   totalBenefit: number;
 
   @ApiProperty({
@@ -51,13 +54,17 @@ export class MonthlySavingsTrendItemDto {
 
 export class MonthlySavingsNarrativeDto {
   @ApiProperty({
-    example: '최근 6개월 동안 절약액은 전반적으로 완만한 상승세이며, 11월에 가장 크게 증가했습니다.',
+    example:
+      '최근 6개월 동안 절약액은 전반적으로 완만한 상승세이며, 11월에 가장 크게 증가했습니다.',
     description: '월간 절약 추이에 대한 AI 요약(문장 1~2개 권장)',
   })
   summary: string;
 
   @ApiProperty({
-    example: ['10월 대비 11월 절약액이 크게 증가', '9월 지출 급증 이후 절약액이 회복'],
+    example: [
+      '10월 대비 11월 절약액이 크게 증가',
+      '9월 지출 급증 이후 절약액이 회복',
+    ],
     description: '핵심 포인트(짧은 bullet 2~4개 권장)',
     type: [String],
   })
@@ -71,6 +78,9 @@ export class MonthlySavingsTrendResponseDto {
   })
   data: MonthlySavingsTrendItemDto[];
 
-  @ApiProperty({ type: MonthlySavingsNarrativeDto, description: 'Gemini 기반 월간 절약 추이 요약' })
+  @ApiProperty({
+    type: MonthlySavingsNarrativeDto,
+    description: 'Gemini 기반 월간 절약 추이 요약',
+  })
   ai: MonthlySavingsNarrativeDto;
 }

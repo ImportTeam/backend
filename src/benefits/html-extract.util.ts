@@ -6,7 +6,7 @@ export type ExtractedOffer = {
   discount_value: number; // percent or amount
   title?: string;
   start_date?: string; // YYYY-MM-DD
-  end_date?: string;   // YYYY-MM-DD
+  end_date?: string; // YYYY-MM-DD
   raw_snippet?: string;
   benefit_kind?: 'DISCOUNT' | 'INSTALLMENT';
 };
@@ -19,15 +19,21 @@ function strip(html: string): string {
   return text.replaceAll(/\s+/g, ' ').trim();
 }
 
-function pad(n: number): string { return n < 10 ? `0${n}` : `${n}`; }
-function toYmd(y: number, m: number, d: number): string { return `${y}-${pad(m)}-${pad(d)}`; }
+function pad(n: number): string {
+  return n < 10 ? `0${n}` : `${n}`;
+}
+function toYmd(y: number, m: number, d: number): string {
+  return `${y}-${pad(m)}-${pad(d)}`;
+}
 
-const DATE_RANGE_RE = /(20\d{2})[-.](\d{1,2})[-.](\d{1,2})\s*[~–-]\s*(?:(20\d{2})[-.])?(\d{1,2})[-.](\d{1,2})/i;
+const DATE_RANGE_RE =
+  /(20\d{2})[-.](\d{1,2})[-.](\d{1,2})\s*[~–-]\s*(?:(20\d{2})[-.])?(\d{1,2})[-.](\d{1,2})/i;
 const KOREAN_DATE_START_RE = /(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})/i;
 const KOREAN_DATE_END_FULL_RE = /(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})/i;
 const KOREAN_DATE_END_PARTIAL_RE = /(\d{1,2})\s*월\s*(\d{1,2})/i;
 const KOREAN_RANGE_SEP_RE = /\s*[~–-]\s*/;
-const DATE_UNTIL_RE = /(?:~|까지)\s*(20\d{2})[-.](\d{1,2})[-.](\d{1,2})\s*까지?/i;
+const DATE_UNTIL_RE =
+  /(?:~|까지)\s*(20\d{2})[-.](\d{1,2})[-.](\d{1,2})\s*까지?/i;
 
 const PERCENT_RE = /(\d{1,2})\s?%/;
 const FLAT_RE = /(\d[\d,]{2,})\s?원/;
@@ -51,12 +57,19 @@ function getProviderContextRegex(providerKeyword: string): RegExp {
   return regex;
 }
 
-function extractDateRange(windowText: string): { start?: string; end?: string } {
+function extractDateRange(windowText: string): {
+  start?: string;
+  end?: string;
+} {
   // 1) 2025.10.14~2025.10.31 or 2025-10-14 ~ 2025-10-31
   let m = DATE_RANGE_RE.exec(windowText);
   if (m) {
-    const y1 = Number(m[1]); const mo1 = Number(m[2]); const d1 = Number(m[3]);
-    const y2 = m[4] ? Number(m[4]) : y1; const mo2 = Number(m[5]); const d2 = Number(m[6]);
+    const y1 = Number(m[1]);
+    const mo1 = Number(m[2]);
+    const d1 = Number(m[3]);
+    const y2 = m[4] ? Number(m[4]) : y1;
+    const mo2 = Number(m[5]);
+    const d2 = Number(m[6]);
     return { start: toYmd(y1, mo1, d1), end: toYmd(y2, mo2, d2) };
   }
   // 2) 한국어 날짜 범위: "YYYY년 M월 D일 ~ YYYY년 M월 D일" 또는 "YYYY년 M월 D일 ~ M월 D일"
@@ -90,7 +103,9 @@ function extractDateRange(windowText: string): { start?: string; end?: string } 
   // 3) ~ 2025.10.31 까지
   m = DATE_UNTIL_RE.exec(windowText);
   if (m) {
-    const y2 = Number(m[1]); const mo2 = Number(m[2]); const d2 = Number(m[3]);
+    const y2 = Number(m[1]);
+    const mo2 = Number(m[2]);
+    const d2 = Number(m[3]);
     return { end: toYmd(y2, mo2, d2) };
   }
   return {};
@@ -101,8 +116,23 @@ export function extractOffersFromHtml(htmlOrText: string): ExtractedOffer[] {
 
   // 카드사/페이 키워드 근처에서 % 또는 금액(원)을 찾는다
   const providers = [
-    '국민', 'KB', 'KB국민', '신한', '삼성', '현대', '롯데', '우리', '농협', 'NH', '하나', 'BC', '비씨',
-    '카카오페이', 'KakaoPay', '네이버페이', 'NaverPay'
+    '국민',
+    'KB',
+    'KB국민',
+    '신한',
+    '삼성',
+    '현대',
+    '롯데',
+    '우리',
+    '농협',
+    'NH',
+    '하나',
+    'BC',
+    '비씨',
+    '카카오페이',
+    'KakaoPay',
+    '네이버페이',
+    'NaverPay',
   ];
 
   const candidates: ExtractedOffer[] = [];

@@ -25,9 +25,7 @@ export interface PaymentHistoryQuery {
 export class PaymentHistoryService {
   private readonly logger = new Logger('PaymentHistoryService');
 
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * 사용자의 결제 내역 조회
@@ -149,10 +147,7 @@ export class PaymentHistoryService {
   /**
    * 결제 단건 조회
    */
-  async getPaymentDetail(
-    userUuid: string,
-    paymentId: string,
-  ): Promise<any> {
+  async getPaymentDetail(userUuid: string, paymentId: string): Promise<any> {
     try {
       this.logger.log(
         `Fetching payment detail: ${paymentId} for user: ${userUuid}`,
@@ -201,9 +196,7 @@ export class PaymentHistoryService {
   /**
    * 결제 상태별 집계
    */
-  async getPaymentStatistics(
-    userUuid: string,
-  ): Promise<any> {
+  async getPaymentStatistics(userUuid: string): Promise<any> {
     try {
       this.logger.log(`Fetching payment statistics for user: ${userUuid}`);
 

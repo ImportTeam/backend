@@ -1,6 +1,11 @@
 export type DiscountType = 'PERCENT' | 'FLAT';
 
-export function calcDiscount(amount: number, type: DiscountType, value: number, max?: number): number {
+export function calcDiscount(
+  amount: number,
+  type: DiscountType,
+  value: number,
+  max?: number,
+): number {
   let saved = 0;
   if (type === 'PERCENT') {
     saved = (amount * value) / 100;
@@ -18,7 +23,10 @@ export function isActiveNow(start?: Date | null, end?: Date | null): boolean {
   return true;
 }
 
-export function matchMerchant(merchant: string, filter?: string | null): boolean {
+export function matchMerchant(
+  merchant: string,
+  filter?: string | null,
+): boolean {
   if (!filter) return true;
   return merchant.toLowerCase().includes(filter.toLowerCase());
 }

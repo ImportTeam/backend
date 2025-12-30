@@ -13,7 +13,7 @@ import { DEFAULT_SOURCES, CrawlerSource } from './sources';
 export class CrawlerService {
   private readonly logger = new Logger(CrawlerService.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   // 4 환경변수 또는 기본값에서 불러옵니다.
   private getSources(): CrawlerSource[] {
@@ -22,9 +22,13 @@ export class CrawlerService {
       try {
         const parsed = JSON.parse(raw) as unknown as CrawlerSource[];
         if (Array.isArray(parsed)) return parsed;
-        this.logger.warn('CRAWLER_SOURCES 형식이 올바르지 않아 기본값을 사용합니다.');
+        this.logger.warn(
+          'CRAWLER_SOURCES 형식이 올바르지 않아 기본값을 사용합니다.',
+        );
       } catch {
-        this.logger.warn('CRAWLER_SOURCES JSON 파싱에 실패해 기본값을 사용합니다.');
+        this.logger.warn(
+          'CRAWLER_SOURCES JSON 파싱에 실패해 기본값을 사용합니다.',
+        );
       }
     }
     return DEFAULT_SOURCES;
@@ -35,7 +39,9 @@ export class CrawlerService {
     this.logger.log('Start crawling promotions...');
     const sources = this.getSources();
     if (sources.length === 0) {
-      this.logger.warn('크롤링 대상이 비어 있습니다. CRAWLER_SOURCES를 설정하세요.');
+      this.logger.warn(
+        '크롤링 대상이 비어 있습니다. CRAWLER_SOURCES를 설정하세요.',
+      );
       return;
     }
 

@@ -21,21 +21,23 @@ describe('AiRecommendationGeminiClient', () => {
   });
 
   it('parses fenced JSON response for benefit summary', async () => {
-    (axios.post as unknown as jest.MockedFunction<AxiosPost>).mockResolvedValue({
-      data: {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: '```json\n{"recommendation":"A","reasonSummary":"B"}\n```',
-                },
-              ],
+    (axios.post as unknown as jest.MockedFunction<AxiosPost>).mockResolvedValue(
+      {
+        data: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: '```json\n{"recommendation":"A","reasonSummary":"B"}\n```',
+                  },
+                ],
+              },
             },
-          },
-        ],
-      },
-    } as any);
+          ],
+        },
+      } as any,
+    );
 
     const client = new AiRecommendationGeminiClient({
       apiKey: 'test_api_key',
@@ -44,7 +46,11 @@ describe('AiRecommendationGeminiClient', () => {
 
     const res = await client.getBenefitRecommendationSummary({
       userUuid: 'u',
-      recentSixMonthsSummary: { totalSpent: 1, totalBenefit: 1, byCategory: [] },
+      recentSixMonthsSummary: {
+        totalSpent: 1,
+        totalBenefit: 1,
+        byCategory: [],
+      },
       paymentMethods: [],
     });
 
@@ -52,21 +58,23 @@ describe('AiRecommendationGeminiClient', () => {
   });
 
   it('converts paymentMethodSeq to BigInt and clamps score', async () => {
-    (axios.post as unknown as jest.MockedFunction<AxiosPost>).mockResolvedValue({
-      data: {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: '{"items":[{"paymentMethodSeq":"123","score":999,"reasonSummary":"R"},{"paymentMethodSeq":456,"score":-10}]}',
-                },
-              ],
+    (axios.post as unknown as jest.MockedFunction<AxiosPost>).mockResolvedValue(
+      {
+        data: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: '{"items":[{"paymentMethodSeq":"123","score":999,"reasonSummary":"R"},{"paymentMethodSeq":456,"score":-10}]}',
+                  },
+                ],
+              },
             },
-          },
-        ],
-      },
-    } as any);
+          ],
+        },
+      } as any,
+    );
 
     const client = new AiRecommendationGeminiClient({
       apiKey: 'test_api_key',
@@ -96,10 +104,12 @@ describe('AiRecommendationGeminiClient', () => {
   });
 
   it('throws ServiceUnavailableException on request failure', async () => {
-    (axios.post as unknown as jest.MockedFunction<AxiosPost>).mockRejectedValue({
-      message: 'rate limited',
-      response: { status: 429, data: { error: 'too many requests' } },
-    });
+    (axios.post as unknown as jest.MockedFunction<AxiosPost>).mockRejectedValue(
+      {
+        message: 'rate limited',
+        response: { status: 429, data: { error: 'too many requests' } },
+      },
+    );
 
     const client = new AiRecommendationGeminiClient({
       apiKey: 'test_api_key',
@@ -108,7 +118,14 @@ describe('AiRecommendationGeminiClient', () => {
 
     await expect(
       client.getMonthlySavingsNarrative({
-        months: [{ month: '2025-01', totalSpent: 1, totalBenefit: 1, savingsAmount: 1 }],
+        months: [
+          {
+            month: '2025-01',
+            totalSpent: 1,
+            totalBenefit: 1,
+            savingsAmount: 1,
+          },
+        ],
       }),
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });

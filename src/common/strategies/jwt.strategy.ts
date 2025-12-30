@@ -7,7 +7,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      throw new Error('JWT_SECRET environment variable is not set. Please set it in your .env file or environment variables.');
+      throw new Error(
+        'JWT_SECRET environment variable is not set. Please set it in your .env file or environment variables.',
+      );
     }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -18,10 +20,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: any) {
     // payload: { sub: string, uuid: string, email: string }
-    return { 
+    return {
       sub: payload.sub,
-      uuid: payload.uuid, 
-      email: payload.email  
+      uuid: payload.uuid,
+      email: payload.email,
     };
   }
 }

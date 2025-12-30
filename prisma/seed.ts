@@ -175,10 +175,21 @@ async function main() {
 
   type TxSeed = {
     merchant_name: string;
+    category: string;
     amount: string;
     benefit_value: string;
     payment_method_seq: bigint;
     created_at: Date;
+  };
+
+  const getCategoryByMerchant = (merchant: string): string => {
+    if (merchants.shopping.includes(merchant)) return '쇼핑';
+    if (merchants.food.includes(merchant)) return '식비';
+    if (merchants.transport.includes(merchant)) return '교통';
+    if (merchants.subscription.includes(merchant)) return '구독';
+    if (merchants.living.includes(merchant)) return '생활';
+    if (merchants.travel.includes(merchant)) return '여행';
+    return '기타';
   };
 
   const txSeed: TxSeed[] = [];
@@ -188,6 +199,7 @@ async function main() {
     const amountNum = Number(amountStr);
     txSeed.push({
       merchant_name,
+      category: getCategoryByMerchant(merchant_name),
       amount: amountStr,
       benefit_value: toBenefit(amountNum, i),
       payment_method_seq: method.seq,
@@ -282,6 +294,7 @@ async function main() {
       user_uuid: hong.uuid,
       payment_method_seq: t.payment_method_seq,
       merchant_name: t.merchant_name,
+      category: t.category,
       amount: t.amount as any,
       currency: 'KRW',
       benefit_value: t.benefit_value as any,

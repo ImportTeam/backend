@@ -72,9 +72,11 @@ export class UsersService {
   async updateCurrentUser(userSeq: bigint | number, dto: UpdateCurrentUserDto) {
     const seq = typeof userSeq === 'bigint' ? userSeq : BigInt(userSeq);
 
-    const hasUserUpdate = typeof dto.name === 'string' || typeof dto.email === 'string';
+    const hasUserUpdate =
+      typeof dto.name === 'string' || typeof dto.email === 'string';
     const settings = dto.settings;
-    const hasSettingsUpdate = Boolean(settings) && Object.keys(settings as object).length > 0;
+    const hasSettingsUpdate =
+      Boolean(settings) && Object.keys(settings as object).length > 0;
 
     if (!hasUserUpdate && !hasSettingsUpdate) {
       return this.getCurrentUser(seq);
@@ -82,44 +84,44 @@ export class UsersService {
 
     try {
       await this.prisma.$transaction(async (tx) => {
-      if (hasUserUpdate) {
-        const data: Record<string, any> = {};
-        if (typeof dto.name === 'string') data.name = dto.name;
-        if (typeof dto.email === 'string') data.email = dto.email;
-        if (Object.keys(data).length > 0) {
-          await tx.users.update({
-            where: { seq },
-            data,
+        if (hasUserUpdate) {
+          const data: Record<string, any> = {};
+          if (typeof dto.name === 'string') data.name = dto.name;
+          if (typeof dto.email === 'string') data.email = dto.email;
+          if (Object.keys(data).length > 0) {
+            await tx.users.update({
+              where: { seq },
+              data,
+            });
+          }
+        }
+
+        if (hasSettingsUpdate) {
+          await tx.user_settings.upsert({
+            where: { user_seq: seq },
+            create: {
+              user_seq: seq,
+              dark_mode: settings?.darkMode ?? false,
+              notification_enabled: settings?.notificationEnabled ?? true,
+              compare_mode: settings?.compareMode ?? 'AUTO',
+              currency_preference: settings?.currencyPreference ?? 'KRW',
+            },
+            update: {
+              ...(typeof settings?.darkMode === 'boolean'
+                ? { dark_mode: settings.darkMode }
+                : {}),
+              ...(typeof settings?.notificationEnabled === 'boolean'
+                ? { notification_enabled: settings.notificationEnabled }
+                : {}),
+              ...(typeof settings?.compareMode === 'string'
+                ? { compare_mode: settings.compareMode }
+                : {}),
+              ...(typeof settings?.currencyPreference === 'string'
+                ? { currency_preference: settings.currencyPreference }
+                : {}),
+            },
           });
         }
-      }
-
-      if (hasSettingsUpdate) {
-        await tx.user_settings.upsert({
-          where: { user_seq: seq },
-          create: {
-            user_seq: seq,
-            dark_mode: settings?.darkMode ?? false,
-            notification_enabled: settings?.notificationEnabled ?? true,
-            compare_mode: settings?.compareMode ?? 'AUTO',
-            currency_preference: settings?.currencyPreference ?? 'KRW',
-          },
-          update: {
-            ...(typeof settings?.darkMode === 'boolean'
-              ? { dark_mode: settings.darkMode }
-              : {}),
-            ...(typeof settings?.notificationEnabled === 'boolean'
-              ? { notification_enabled: settings.notificationEnabled }
-              : {}),
-            ...(typeof settings?.compareMode === 'string'
-              ? { compare_mode: settings.compareMode }
-              : {}),
-            ...(typeof settings?.currencyPreference === 'string'
-              ? { currency_preference: settings.currencyPreference }
-              : {}),
-          },
-        });
-      }
       });
     } catch (error) {
       if (isEmailUniqueConstraintError(error)) {
@@ -131,17 +133,24 @@ export class UsersService {
     return this.getCurrentUser(seq);
   }
 
-  async changePassword(userSeq: bigint | number, currentPassword: string, newPassword: string) {
+  async changePassword(
+    userSeq: bigint | number,
+    currentPassword: string,
+    newPassword: string,
+  ) {
     const seq = typeof userSeq === 'bigint' ? userSeq : BigInt(userSeq);
     const user = await this.prisma.users.findUnique({ where: { seq } });
     if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.');
 
     if (!user.password_hash) {
-      throw new ConflictException('비밀번호가 없는 계정입니다(소셜 로그인 계정).');
+      throw new ConflictException(
+        '비밀번호가 없는 계정입니다(소셜 로그인 계정).',
+      );
     }
 
     const ok = await bcrypt.compare(currentPassword, user.password_hash || '');
-    if (!ok) throw new UnauthorizedException('현재 비밀번호가 일치하지 않습니다.');
+    if (!ok)
+      throw new UnauthorizedException('현재 비밀번호가 일치하지 않습니다.');
 
     const password_hash = await bcrypt.hash(newPassword, 10);
     await this.prisma.users.update({ where: { seq }, data: { password_hash } });
@@ -167,7 +176,11 @@ export class UsersService {
     });
   }
 
-  async linkSocialAccountByEmail(email: string, provider: string, providerId: string) {
+  async linkSocialAccountByEmail(
+    email: string,
+    provider: string,
+    providerId: string,
+  ) {
     const normalized = normalizeEmail(email);
     const user = await this.findByEmail(normalized);
     if (!user) return null;
@@ -189,7 +202,10 @@ export class UsersService {
   }) {
     return this.prisma.user_sessions.create({
       data: {
-        user_seq: typeof data.user_seq === 'bigint' ? data.user_seq : BigInt(data.user_seq),
+        user_seq:
+          typeof data.user_seq === 'bigint'
+            ? data.user_seq
+            : BigInt(data.user_seq),
         access_token: data.access_token,
         refresh_token: data.refresh_token,
         expires_at: data.expires_at,
@@ -201,9 +217,13 @@ export class UsersService {
   async updatePassword(email: string, newPassword: string) {
     const normalized = normalizeEmail(email);
     const user = await this.findByEmail(normalized);
-    if (!user) throw new NotFoundException('해당 이메일의 사용자를 찾을 수 없습니다.');
+    if (!user)
+      throw new NotFoundException('해당 이메일의 사용자를 찾을 수 없습니다.');
     const password_hash = await bcrypt.hash(newPassword, 10);
-    return this.prisma.users.update({ where: { email: normalized }, data: { password_hash } });
+    return this.prisma.users.update({
+      where: { email: normalized },
+      data: { password_hash },
+    });
   }
 
   async unlinkSocialProvider(userSeq: bigint | number, provider: string) {
@@ -211,19 +231,29 @@ export class UsersService {
     const user = await this.findBySeq(seq);
     if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.');
 
-    if ((user.social_provider || '').toLowerCase() !== (provider || '').toLowerCase()) {
+    if (
+      (user.social_provider || '').toLowerCase() !==
+      (provider || '').toLowerCase()
+    ) {
       return null;
     }
 
-    return this.prisma.users.update({ where: { seq }, data: { social_provider: 'NONE', social_id: null } });
+    return this.prisma.users.update({
+      where: { seq },
+      data: { social_provider: 'NONE', social_id: null },
+    });
   }
 
   async findSessionByRefreshToken(refreshToken: string) {
-    return this.prisma.user_sessions.findFirst({ where: { refresh_token: refreshToken } });
+    return this.prisma.user_sessions.findFirst({
+      where: { refresh_token: refreshToken },
+    });
   }
 
   async deleteSessionByRefreshToken(refreshToken: string) {
-    return this.prisma.user_sessions.deleteMany({ where: { refresh_token: refreshToken } });
+    return this.prisma.user_sessions.deleteMany({
+      where: { refresh_token: refreshToken },
+    });
   }
 
   async deleteSessionsByUserSeq(userSeq: bigint | number) {
@@ -245,14 +275,19 @@ export class UsersService {
     });
   }
 
-  async revokeSessionBySeq(userSeq: bigint | number, sessionSeq: bigint | number | string) {
+  async revokeSessionBySeq(
+    userSeq: bigint | number,
+    sessionSeq: bigint | number | string,
+  ) {
     const seq = typeof userSeq === 'bigint' ? userSeq : BigInt(userSeq);
-    const sessionId = typeof sessionSeq === 'bigint' ? sessionSeq : BigInt(sessionSeq);
+    const sessionId =
+      typeof sessionSeq === 'bigint' ? sessionSeq : BigInt(sessionSeq);
 
     const result = await this.prisma.user_sessions.deleteMany({
       where: { seq: sessionId, user_seq: seq },
     });
-    if (result.count === 0) throw new NotFoundException('세션을 찾을 수 없습니다.');
+    if (result.count === 0)
+      throw new NotFoundException('세션을 찾을 수 없습니다.');
     return { ok: true };
   }
 
@@ -262,12 +297,14 @@ export class UsersService {
 
     if (isUuid) {
       user = await this.prisma.users.findUnique({ where: { uuid: userId } });
-      if (!user) throw new NotFoundException('해당 UUID의 사용자를 찾을 수 없습니다.');
+      if (!user)
+        throw new NotFoundException('해당 UUID의 사용자를 찾을 수 없습니다.');
       await this.prisma.users.delete({ where: { uuid: userId } });
     } else {
       const seq = BigInt(userId);
       user = await this.prisma.users.findUnique({ where: { seq } });
-      if (!user) throw new NotFoundException('해당 ID의 사용자를 찾을 수 없습니다.');
+      if (!user)
+        throw new NotFoundException('해당 ID의 사용자를 찾을 수 없습니다.');
       await this.prisma.users.delete({ where: { seq } });
     }
 

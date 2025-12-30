@@ -1,6 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { endOfMonth, format, startOfMonth, subMonths, subYears } from 'date-fns';
+import {
+  endOfMonth,
+  format,
+  startOfMonth,
+  subMonths,
+  subYears,
+} from 'date-fns';
 import { AI_RECOMMENDATION_CLIENT } from '../external';
 import type { AiRecommendationClient } from '../external/ai-recommendation/ai-recommendation.client';
 import { RecentSiteTransactionsQueryDto } from './dto/recent-site-transactions.query.dto';
@@ -10,7 +16,8 @@ export class DashboardService {
   private readonly logger = new Logger(DashboardService.name);
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(AI_RECOMMENDATION_CLIENT) private readonly aiClient: AiRecommendationClient,
+    @Inject(AI_RECOMMENDATION_CLIENT)
+    private readonly aiClient: AiRecommendationClient,
   ) {}
 
   private toNumber(value: any) {
@@ -45,16 +52,59 @@ export class DashboardService {
 
   private classifyCategory(merchantName: string) {
     const name = (merchantName || '').toLowerCase();
-    if (name.includes('coupang') || name.includes('쿠팡') || name.includes('11번가') || name.includes('gmarket')) return '쇼핑';
-    if (name.includes('스타벅스') || name.includes('coffee') || name.includes('카페') || name.includes('맥도날드') || name.includes('버거') || name.includes('식당')) return '식비';
-    if (name.includes('지하철') || name.includes('버스') || name.includes('택시') || name.includes('kakao t') || name.includes('교통')) return '교통';
-    if (name.includes('netflix') || name.includes('youtube') || name.includes('spotify') || name.includes('구독')) return '구독';
-    if (name.includes('마트') || name.includes('편의점') || name.includes('gs') || name.includes('cu') || name.includes('emart')) return '생활';
-    if (name.includes('항공') || name.includes('hotel') || name.includes('숙박') || name.includes('여행')) return '여행';
+    if (
+      name.includes('coupang') ||
+      name.includes('쿠팡') ||
+      name.includes('11번가') ||
+      name.includes('gmarket')
+    )
+      return '쇼핑';
+    if (
+      name.includes('스타벅스') ||
+      name.includes('coffee') ||
+      name.includes('카페') ||
+      name.includes('맥도날드') ||
+      name.includes('버거') ||
+      name.includes('식당')
+    )
+      return '식비';
+    if (
+      name.includes('지하철') ||
+      name.includes('버스') ||
+      name.includes('택시') ||
+      name.includes('kakao t') ||
+      name.includes('교통')
+    )
+      return '교통';
+    if (
+      name.includes('netflix') ||
+      name.includes('youtube') ||
+      name.includes('spotify') ||
+      name.includes('구독')
+    )
+      return '구독';
+    if (
+      name.includes('마트') ||
+      name.includes('편의점') ||
+      name.includes('gs') ||
+      name.includes('cu') ||
+      name.includes('emart')
+    )
+      return '생활';
+    if (
+      name.includes('항공') ||
+      name.includes('hotel') ||
+      name.includes('숙박') ||
+      name.includes('여행')
+    )
+      return '여행';
     return '기타';
   }
 
-  private async buildBenefitOffersSummary(providerNames: string[], topCategories: string[]) {
+  private async buildBenefitOffersSummary(
+    providerNames: string[],
+    topCategories: string[],
+  ) {
     const uniqueProviders = Array.from(new Set(providerNames.filter(Boolean)));
     if (uniqueProviders.length === 0) return [];
 
@@ -101,7 +151,9 @@ export class DashboardService {
       const scored = list
         .map((o) => {
           const cf = (o.category_filter ?? '').toString().toLowerCase();
-          const score = topCategories.some((c) => cf.includes(c.toLowerCase())) ? 2 : 0;
+          const score = topCategories.some((c) => cf.includes(c.toLowerCase()))
+            ? 2
+            : 0;
           return { o, score };
         })
         .sort((a, b) => b.score - a.score)
@@ -179,7 +231,12 @@ export class DashboardService {
     const lastYearSameMonthSavingsAmount = lastYear.totalBenefit;
 
     const savingsDeltaAmount = savingsAmount - lastYearSameMonthSavingsAmount;
-    const savingsDeltaDirection = savingsDeltaAmount > 0 ? '증가' : savingsDeltaAmount < 0 ? '감소' : '동일';
+    const savingsDeltaDirection =
+      savingsDeltaAmount > 0
+        ? '증가'
+        : savingsDeltaAmount < 0
+          ? '감소'
+          : '동일';
     const compareMessage =
       savingsDeltaDirection === '동일'
         ? '작년 같은 달과 절약 금액이 같아요.'
@@ -189,7 +246,8 @@ export class DashboardService {
     if (lastYear.totalAmount && lastYear.totalAmount > 0) {
       // 작년 동월 대비 절약률 = (lastYear - (thisMonthActual)) / lastYear * 100
       const thisMonthActual = Math.max(0, totalAmount - totalBenefit);
-      savingsRatePercent = ((lastYear.totalAmount - thisMonthActual) / lastYear.totalAmount) * 100;
+      savingsRatePercent =
+        ((lastYear.totalAmount - thisMonthActual) / lastYear.totalAmount) * 100;
       savingsRatePercent = Math.round(savingsRatePercent * 100) / 100; // 소수점 2자리
     }
 
@@ -281,7 +339,9 @@ export class DashboardService {
       where: { seq },
       select: { provider_name: true, alias: true, last_4_nums: true },
     });
-    const name = method ? method.alias ?? `${method.provider_name}(${method.last_4_nums})` : 'Unknown';
+    const name = method
+      ? (method.alias ?? `${method.provider_name}(${method.last_4_nums})`)
+      : 'Unknown';
 
     // “이번 달 사용 금액”은 요구사항대로 별도 계산
     const monthAgg = await this.prisma.payment_transactions.aggregate({
@@ -317,11 +377,13 @@ export class DashboardService {
     // 성능 확장 포인트:
     // - 지금은 6회 aggregate 쿼리를 실행합니다.
     // - 실무에서는 월 단위 집계 테이블/배치를 통해 O(1) 조회로 최적화하는 것을 권장합니다.
-    const monthRanges = Array.from({ length: 6 }, (_, idx) => 5 - idx).map((i) => {
-      const monthStart = startOfMonth(subMonths(now, i));
-      const monthEnd = endOfMonth(subMonths(now, i));
-      return { monthStart, monthEnd, label: format(monthStart, 'yyyy-MM') };
-    });
+    const monthRanges = Array.from({ length: 6 }, (_, idx) => 5 - idx).map(
+      (i) => {
+        const monthStart = startOfMonth(subMonths(now, i));
+        const monthEnd = endOfMonth(subMonths(now, i));
+        return { monthStart, monthEnd, label: format(monthStart, 'yyyy-MM') };
+      },
+    );
 
     const aggs = await Promise.all(
       monthRanges.map((r) =>
@@ -339,7 +401,10 @@ export class DashboardService {
     const items = aggs.map((agg, idx) => {
       const totalSpent = this.toNumber(agg._sum.amount ?? 0);
       const totalBenefit = this.toNumber(agg._sum.benefit_value ?? 0);
-      const { savingsAmount } = this.computeSavingsMetric(totalSpent, totalBenefit);
+      const { savingsAmount } = this.computeSavingsMetric(
+        totalSpent,
+        totalBenefit,
+      );
       const month = monthRanges[idx].label;
       return {
         month,
@@ -425,11 +490,12 @@ export class DashboardService {
       orderBy: [{ is_primary: 'desc' }, { created_at: 'desc' }],
     });
 
-    const [monthlySavingsTrend, topMerchant, topPaymentMethod] = await Promise.all([
-      this.getMonthlySavingsTrend(userUuid).then((r: any) => r?.data ?? []),
-      this.getTopMerchant(userUuid),
-      this.getTopPaymentMethod(userUuid),
-    ]);
+    const [monthlySavingsTrend, topMerchant, topPaymentMethod] =
+      await Promise.all([
+        this.getMonthlySavingsTrend(userUuid).then((r: any) => r?.data ?? []),
+        this.getTopMerchant(userUuid),
+        this.getTopPaymentMethod(userUuid),
+      ]);
 
     const topCategories = summary.byCategory.slice(0, 3).map((c) => c.category);
     const benefitOffersSummary = await this.buildBenefitOffersSummary(
@@ -448,7 +514,10 @@ export class DashboardService {
             savingsAmount: m.savingsAmount,
           })),
           topMerchant: topMerchant
-            ? { merchantName: topMerchant.merchantName, totalSpent: topMerchant.totalSpent }
+            ? {
+                merchantName: topMerchant.merchantName,
+                totalSpent: topMerchant.totalSpent,
+              }
             : null,
           topPaymentMethod: topPaymentMethod
             ? {
@@ -487,7 +556,12 @@ export class DashboardService {
 
     const paymentMethods = await this.prisma.payment_methods.findMany({
       where: { user_uuid: userUuid },
-      select: { seq: true, provider_name: true, alias: true, last_4_nums: true },
+      select: {
+        seq: true,
+        provider_name: true,
+        alias: true,
+        last_4_nums: true,
+      },
       orderBy: [{ is_primary: 'desc' }, { created_at: 'desc' }],
     });
 
@@ -498,10 +572,19 @@ export class DashboardService {
     });
     const offerCountByProvider = new Map<string, number>();
     for (const o of activeOffers) {
-      offerCountByProvider.set(o.provider_name, (offerCountByProvider.get(o.provider_name) || 0) + 1);
+      offerCountByProvider.set(
+        o.provider_name,
+        (offerCountByProvider.get(o.provider_name) || 0) + 1,
+      );
     }
 
-    let aiTop3 = { items: [] as Array<{ paymentMethodSeq: bigint; score: number; reasonSummary: string }> };
+    let aiTop3 = {
+      items: [] as Array<{
+        paymentMethodSeq: bigint;
+        score: number;
+        reasonSummary: string;
+      }>,
+    };
     try {
       aiTop3 = await this.aiClient.getRecommendedPaymentMethodsTop3({
         userUuid,
@@ -555,7 +638,10 @@ export class DashboardService {
     return { data: mapped };
   }
 
-  async getRecentTransactionsBySite(userUuid: string, query: RecentSiteTransactionsQueryDto) {
+  async getRecentTransactionsBySite(
+    userUuid: string,
+    query: RecentSiteTransactionsQueryDto,
+  ) {
     const page = query.page ?? 1;
     const size = query.size ?? 10;
     const skip = (page - 1) * size;
@@ -582,11 +668,18 @@ export class DashboardService {
       }),
     ]);
 
-    const methodSeqs = [...new Set(items.map((i) => i.payment_method_seq).filter(Boolean))] as bigint[];
+    const methodSeqs = [
+      ...new Set(items.map((i) => i.payment_method_seq).filter(Boolean)),
+    ] as bigint[];
     const methods = methodSeqs.length
       ? await this.prisma.payment_methods.findMany({
           where: { seq: { in: methodSeqs } },
-          select: { seq: true, provider_name: true, alias: true, last_4_nums: true },
+          select: {
+            seq: true,
+            provider_name: true,
+            alias: true,
+            last_4_nums: true,
+          },
         })
       : [];
     const methodMap = new Map<bigint, string>();
@@ -595,7 +688,9 @@ export class DashboardService {
     }
 
     const mapped = items.map((tx) => {
-      const pmName = tx.payment_method_seq ? methodMap.get(tx.payment_method_seq) : undefined;
+      const pmName = tx.payment_method_seq
+        ? methodMap.get(tx.payment_method_seq)
+        : undefined;
       return {
         merchantName: tx.merchant_name,
         paidAt: tx.created_at.toISOString(),
